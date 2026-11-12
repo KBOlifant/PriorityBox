@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --color-canvas: #0d0d0e;
+  --color-sidebar: #121214;
+  --color-surface: #19191b;
+  --color-surface-2: #1f1f22;
+  --color-line: #27272a;
+  --color-ink: #f3f1ee;
+  --color-body: #aeaba7;
+  --color-muted: #7f7c78;
+  --color-accent: #c0584a;
+  --color-accent-hover: #cd6858;
+  --color-accent-text: #ee7b66;
+  --color-accent-soft: #2a1814;
+  --color-accent-line: #4b2823;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--color-canvas);
+}
+
+body {
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #c0584a66;
+}
+
+/* Quiet dark scrollbars to match the wireframes */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2c2c30 transparent;
+}

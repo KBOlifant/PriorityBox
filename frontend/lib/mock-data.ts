@@ -1,0 +1,188 @@
+import type { Message } from "./types";
+
+export const USER = { name: "Alex Rivera", firstName: "Alex", initials: "AR" };
+export const TODAY_LABEL = "Monday, September 15";
+
+/** Sample messages, newest first. Replaced by real provider data later. */
+export const baseMessages: Message[] = [
+  {
+    id: "maya-chen",
+    sender: "Maya Chen",
+    email: "maya.chen@northwind.example",
+    initials: "MC",
+    avatarColor: "#c25b4c",
+    day: "Today",
+    time: "9:42 AM",
+    subject: "Final approval needed for Q3 launch",
+    preview:
+      "We are ready to lock the launch plan, but need your approval on the final timeline and campaign handoff.",
+    event: { label: "Launch decision", date: "Sep 18, 2025" },
+    priority: "High",
+    waiting: true,
+    archived: false,
+    summary:
+      "Maya needs final approval on the Q3 launch timeline. The campaign handoff is otherwise complete. Respond before today's 2 PM planning call to avoid moving the launch date.",
+    progress: { stage: "Awaiting your approval", percent: 78 },
+    tags: ["Approval", "Launch"],
+    remarks: "Review timeline with the growth team before 2 PM.",
+    draft:
+      "Hi Maya,\n\nThanks for sending the final launch plan. I've reviewed the timeline and campaign handoff, and I'm happy to approve the Q3 launch as proposed.\n\nPlease move forward with the final handoff and let me know if the team needs anything else before September 18.\n\nBest,\nAlex",
+  },
+  {
+    id: "julian-foster",
+    sender: "Julian Foster",
+    email: "julian.foster@harborlegal.example",
+    initials: "JF",
+    avatarColor: "#8b6558",
+    day: "Today",
+    time: "8:15 AM",
+    subject: "Contract revisions — action required",
+    preview:
+      "Legal has resolved most of the open clauses. Two commercial terms still need a decision from your team.",
+    event: { label: "Response due", date: "Sep 16, 2025" },
+    priority: "High",
+    waiting: true,
+    archived: false,
+    summary:
+      "Legal has closed most open clauses in the contract. Two commercial terms need a decision from your team by September 16 before signatures can be scheduled.",
+    progress: { stage: "Awaiting your decision", percent: 62 },
+    tags: ["Contract", "Legal"],
+    remarks: "Confirm payment terms with finance first.",
+    draft:
+      "Hi Julian,\n\nThanks for the update on the contract. I'm reviewing the two open commercial terms with my team and will confirm our position before the September 16 deadline.\n\nPlease hold the signature slot until then.\n\nBest,\nAlex",
+  },
+  {
+    id: "ana-martins",
+    sender: "Ana Martins",
+    email: "ana.martins@studio.example",
+    initials: "AM",
+    avatarColor: "#6f8466",
+    day: "Yesterday",
+    time: "4:28 PM",
+    subject: "Research synthesis is ready",
+    preview:
+      "The customer interview synthesis and opportunity map are now ready for review. I highlighted three themes.",
+    priority: "Medium",
+    waiting: false,
+    archived: false,
+    summary:
+      "Ana has finished the customer interview synthesis and opportunity map, and highlighted three themes. A review is requested, but nothing is blocking.",
+    progress: { stage: "Ready for review", percent: 40 },
+    tags: ["Research"],
+    remarks: "",
+    draft:
+      "Hi Ana,\n\nThanks for pulling the synthesis together. I'll read through the opportunity map and the three themes this week and send my notes by Friday.\n\nBest,\nAlex",
+  },
+  {
+    id: "miles-okafor",
+    sender: "Miles Okafor",
+    email: "miles.okafor@billing.example",
+    initials: "MO",
+    avatarColor: "#6b5d8c",
+    day: "Sep 12",
+    time: "11:07 AM",
+    subject: "August invoice and usage statement",
+    preview:
+      "Attached is the August invoice and a breakdown of usage. No action is needed if the totals look correct.",
+    event: { label: "Invoice due", date: "Sep 30, 2025" },
+    priority: "Low",
+    waiting: false,
+    archived: false,
+    summary:
+      "The August invoice and usage breakdown are attached. Payment is due September 30 and no action is needed if the totals match expectations.",
+    progress: { stage: "Invoice received", percent: 30 },
+    tags: ["Finance", "Invoice"],
+    remarks: "",
+    draft:
+      "Hi Miles,\n\nThanks for sending the August invoice. The totals look correct, and we'll process payment ahead of the September 30 due date.\n\nBest,\nAlex",
+  },
+  {
+    id: "nora-ibrahim",
+    sender: "Nora Ibrahim",
+    email: "nora.ibrahim@designcollective.example",
+    initials: "NI",
+    avatarColor: "#44687a",
+    day: "Sep 11",
+    time: "2:40 PM",
+    subject: "Design leadership roundtable invitation",
+    preview:
+      "We would love to host you at our small design leadership dinner next month. Details are included below.",
+    event: { label: "Roundtable", date: "Oct 8, 2025" },
+    priority: "Medium",
+    waiting: true,
+    archived: false,
+    summary:
+      "Nora is inviting you to a small design leadership dinner on October 8. She is waiting on your RSVP so she can finalise the guest list.",
+    progress: { stage: "Awaiting your reply", percent: 35 },
+    tags: ["Invitation", "Event"],
+    remarks: "",
+    draft:
+      "Hi Nora,\n\nThank you for the invitation to the design leadership roundtable on October 8. I'd be glad to join and will confirm any dietary needs closer to the date.\n\nBest,\nAlex",
+  },
+  {
+    id: "theo-bennett",
+    sender: "Theo Bennett",
+    email: "theo.bennett@product.example",
+    initials: "TB",
+    avatarColor: "#7a6048",
+    day: "Sep 10",
+    time: "10:18 AM",
+    subject: "Re: Prototype feedback and next steps",
+    preview:
+      "Thanks for the thoughtful feedback. I'm checking the interaction changes with engineering and will get back to you shortly.",
+    event: { label: "Follow-up date", date: "Sep 19, 2025" },
+    priority: "Medium",
+    waiting: true,
+    archived: false,
+    summary:
+      "Theo is validating your interaction feedback with engineering and will reply with next steps. A follow-up is worth sending if you haven't heard back by September 19.",
+    progress: { stage: "Waiting on Theo", percent: 55 },
+    tags: ["Prototype", "Engineering"],
+    remarks: "",
+    draft:
+      "Hi Theo,\n\nJust checking in on the interaction changes from the prototype review. Let me know what engineering thinks and whether anything needs a decision from me.\n\nBest,\nAlex",
+  },
+  {
+    id: "priya-shah",
+    sender: "Priya Shah",
+    email: "priya.shah@workshops.example",
+    initials: "PS",
+    avatarColor: "#4f7a72",
+    day: "Aug 29",
+    time: "3:12 PM",
+    subject: "Workshop recap and recordings",
+    preview:
+      "Here are the workshop recording, notes, and agreed next steps from our August working session.",
+    priority: "Low",
+    waiting: false,
+    archived: true,
+    summary:
+      "Priya shared the recording, notes, and agreed next steps from the August working session. Everything has been shared with the team.",
+    progress: { stage: "Complete", percent: 100 },
+    tags: ["Workshop"],
+    remarks: "Archived after sharing with the team.",
+    draft: "",
+  },
+  {
+    id: "owen-brooks",
+    sender: "Owen Brooks",
+    email: "owen.brooks@travel.example",
+    initials: "OB",
+    avatarColor: "#5a6585",
+    day: "Aug 26",
+    time: "9:04 AM",
+    subject: "Travel itinerary confirmed",
+    preview:
+      "Your flights and hotel are confirmed. The final itinerary is attached for your records.",
+    event: { label: "Departure", date: "Oct 21, 2025" },
+    priority: "Low",
+    waiting: false,
+    archived: true,
+    summary:
+      "Flights and hotel are confirmed for the October 21 trip. The itinerary is final and no further action is needed.",
+    progress: { stage: "Complete", percent: 100 },
+    tags: ["Travel"],
+    remarks: "",
+    draft: "",
+  },
+];
