@@ -21,9 +21,7 @@ export interface Message {
   priority: Priority;
   waiting: boolean;
   archived: boolean;
-  summary: string;
   progress: { stage: string; percent: number };
   tags: string[];
   remarks: string;
-  draft: string;
 }

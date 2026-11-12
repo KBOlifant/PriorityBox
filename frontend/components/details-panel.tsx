@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Check, Copy, Loader2, Send, Sparkles } from "lucide-react";
+import { generate } from "@/lib/ai";
+import { useProfile } from "@/lib/auth";
 import { actions } from "@/lib/store";
 import { mailtoHref } from "@/lib/actions";
 import type { Message } from "@/lib/types";
@@ -85,19 +87,36 @@ export function DetailsPanel({ message: m }: { message: Message }) {
 }
 
 function FollowUp({ message: m }: { message: Message }) {
+  const { name: userName } = useProfile();
   const [state, setState] = useState<"idle" | "loading" | "ready">("idle");
-  const [draft, setDraft] = useState(m.draft);
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const mounted = useRef(true);
 
   useEffect(() => {
     const t = timers.current;
-    return () => t.forEach(clearTimeout);
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      t.forEach(clearTimeout);
+    };
   }, []);
 
-  function write() {
+  async function write() {
     setState("loading");
-    timers.current.push(setTimeout(() => setState("ready"), 1000));
+    setError("");
+    try {
+      const text = await generate("draft", m, userName);
+      if (!mounted.current) return;
+      setDraft(text);
+      setState("ready");
+    } catch (err) {
+      if (!mounted.current) return;
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setState("idle");
+    }
   }
 
   async function copy() {
@@ -125,7 +144,7 @@ function FollowUp({ message: m }: { message: Message }) {
         {state !== "ready" && (
           <motion.button
             type="button"
-            onClick={write}
+            onClick={() => void write()}
             disabled={state === "loading"}
             whileTap={{ scale: 0.97 }}
             className="flex h-9 items-center gap-2 rounded-lg bg-accent px-4 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-70"
@@ -139,6 +158,12 @@ function FollowUp({ message: m }: { message: Message }) {
           </motion.button>
         )}
       </div>
+
+      {error && (
+        <p role="alert" className="mt-3 text-[12.5px] text-[#f0a090]">
+          {error}
+        </p>
+      )}
 
       {state === "ready" && (
         <motion.div

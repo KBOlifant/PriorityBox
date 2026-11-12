@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { PriorityBadge } from "./priority-badge";
 import { DetailsPanel } from "./details-panel";
+import { generate } from "@/lib/ai";
+import { useProfile } from "@/lib/auth";
 import { actions } from "@/lib/store";
 import { downloadMessage, mailtoHref } from "@/lib/actions";
 import type { Message, Priority } from "@/lib/types";
@@ -32,21 +34,44 @@ export function MessageCard({
   index: number;
 }) {
   const [open, setOpen] = useState(false);
+  const { name: userName } = useProfile();
   const [summary, setSummary] = useState<SummaryState>("closed");
-  const generated = useRef(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [summaryText, setSummaryText] = useState("");
+  const [summaryError, setSummaryError] = useState("");
+  // Bumped on every toggle so a response that arrives after the panel was
+  // closed (or the card unmounted) is ignored.
+  const request = useRef(0);
 
-  useEffect(() => () => clearTimeout(timer.current), []);
+  useEffect(() => {
+    const r = request;
+    return () => {
+      r.current += 1;
+    };
+  }, []);
 
   function toggleSummary() {
-    clearTimeout(timer.current);
-    if (summary !== "closed") return setSummary("closed");
-    if (generated.current) return setSummary("open");
+    if (summary !== "closed") {
+      request.current += 1;
+      return setSummary("closed");
+    }
+    if (summaryText) return setSummary("open");
+    void loadSummary();
+  }
+
+  async function loadSummary() {
+    const id = ++request.current;
+    setSummaryError("");
     setSummary("loading");
-    timer.current = setTimeout(() => {
-      generated.current = true;
+    try {
+      const text = await generate("summary", m, userName);
+      if (id !== request.current) return;
+      setSummaryText(text);
       setSummary("open");
-    }, 900);
+    } catch (err) {
+      if (id !== request.current) return;
+      setSummaryError(err instanceof Error ? err.message : "Something went wrong.");
+      setSummary("open");
+    }
   }
 
   return (
@@ -177,13 +202,24 @@ export function MessageCard({
                   <div className="h-3 w-4/5 animate-pulse rounded bg-accent-line/70" />
                   <div className="h-3 w-3/5 animate-pulse rounded bg-accent-line/70" />
                 </div>
+              ) : summaryError ? (
+                <p role="alert" className="mt-2.5 text-[13.5px] leading-6 text-[#f0a090]">
+                  {summaryError}{" "}
+                  <button
+                    type="button"
+                    onClick={() => void loadSummary()}
+                    className="font-medium underline underline-offset-2"
+                  >
+                    Try again
+                  </button>
+                </p>
               ) : (
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="mt-2.5 text-[14px] leading-6 text-[#e9dcd8]"
+                  className="mt-2.5 whitespace-pre-line text-[14px] leading-6 text-[#e9dcd8]"
                 >
-                  {m.summary}
+                  {summaryText}
                 </motion.p>
               )}
             </div>
