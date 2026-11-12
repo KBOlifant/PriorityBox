@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Check, Copy, Loader2, Send, Sparkles } from "lucide-react";
-import { generate } from "@/lib/ai";
 import { useProfile } from "@/lib/auth";
 import { actions } from "@/lib/store";
+import { draftReply } from "@/services/groq";
 import { mailtoHref } from "@/lib/actions";
 import type { Message } from "@/lib/types";
 
@@ -108,7 +108,7 @@ function FollowUp({ message: m }: { message: Message }) {
     setState("loading");
     setError("");
     try {
-      const text = await generate("draft", m, userName);
+      const text = await draftReply(m, userName);
       if (!mounted.current) return;
       setDraft(text);
       setState("ready");

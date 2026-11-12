@@ -11,9 +11,8 @@ import {
 } from "lucide-react";
 import { PriorityBadge } from "./priority-badge";
 import { DetailsPanel } from "./details-panel";
-import { generate } from "@/lib/ai";
-import { useProfile } from "@/lib/auth";
 import { actions } from "@/lib/store";
+import { summarizeEmail } from "@/services/groq";
 import { downloadMessage, mailtoHref } from "@/lib/actions";
 import type { Message, Priority } from "@/lib/types";
 
@@ -34,7 +33,6 @@ export function MessageCard({
   index: number;
 }) {
   const [open, setOpen] = useState(false);
-  const { name: userName } = useProfile();
   const [summary, setSummary] = useState<SummaryState>("closed");
   const [summaryText, setSummaryText] = useState("");
   const [summaryError, setSummaryError] = useState("");
@@ -63,7 +61,7 @@ export function MessageCard({
     setSummaryError("");
     setSummary("loading");
     try {
-      const text = await generate("summary", m, userName);
+      const text = await summarizeEmail(m);
       if (id !== request.current) return;
       setSummaryText(text);
       setSummary("open");

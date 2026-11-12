@@ -6,7 +6,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Splash } from "@/components/auth-gate";
 import { LogoMark } from "@/components/logo";
-import { authErrorMessage, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
+import { authErrorMessage } from "@/services/auth";
 
 type Mode = "login" | "signup";
 
