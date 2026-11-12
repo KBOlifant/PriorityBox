@@ -3,9 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Archive, Calendar, Clock, Inbox, Mail, Plus } from "lucide-react";
+import {
+  Archive,
+  Calendar,
+  Clock,
+  Inbox,
+  LogOut,
+  Mail,
+  Plus,
+} from "lucide-react";
 import { LogoMark } from "./logo";
-import { USER } from "@/lib/mock-data";
+import { useAuth, useProfile } from "@/lib/auth";
 import { actions } from "@/lib/store";
 import { useCounts } from "@/lib/selectors";
 import type { PageKey } from "@/lib/types";
@@ -32,6 +40,8 @@ const LABELS = [
 export function Sidebar() {
   const pathname = usePathname();
   const counts = useCounts();
+  const profile = useProfile();
+  const { signOut } = useAuth();
 
   return (
     <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-line bg-sidebar md:flex">
@@ -117,13 +127,26 @@ export function Sidebar() {
         </motion.button>
 
         <div className="flex items-center gap-3 px-2 pb-1">
-          <span className="grid size-9 place-items-center rounded-full bg-[#e9b7a3] text-[12px] font-semibold text-[#5a2a20]">
-            {USER.initials}
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[#e9b7a3] text-[12px] font-semibold text-[#5a2a20]">
+            {profile.initials}
           </span>
-          <span>
-            <span className="block text-[13px] font-medium">{USER.name}</span>
-            <span className="block text-[11px] text-muted">Local workspace</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium">
+              {profile.name}
+            </span>
+            <span className="block truncate text-[11px] text-muted">
+              {profile.email || "Local workspace"}
+            </span>
           </span>
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            aria-label="Sign out"
+            title="Sign out"
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.05] hover:text-ink"
+          >
+            <LogOut className="size-4" />
+          </button>
         </div>
       </div>
     </aside>

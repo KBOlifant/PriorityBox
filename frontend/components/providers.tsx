@@ -1,7 +1,12 @@
 "use client";
 
 import { MotionConfig } from "framer-motion";
+import { AuthProvider } from "@/lib/auth";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <MotionConfig reducedMotion="user">{children}</MotionConfig>;
+  return (
+    <MotionConfig reducedMotion="user">
+      <AuthProvider>{children}</AuthProvider>
+    </MotionConfig>
+  );
 }

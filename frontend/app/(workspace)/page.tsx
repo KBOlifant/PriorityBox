@@ -3,10 +3,11 @@
 import { Flag } from "lucide-react";
 import { MessageGrid } from "@/components/message-grid";
 import { PageHeader, SectionHeading } from "@/components/page-header";
-import { USER } from "@/lib/mock-data";
+import { useProfile } from "@/lib/auth";
 import { needsAttention, usePage } from "@/lib/selectors";
 
 export default function PriorityInboxPage() {
+  const { firstName } = useProfile();
   const { all, visible, filtering } = usePage("priority");
   const attention = visible.filter(needsAttention);
   const rest = visible.filter((m) => !needsAttention(m));
@@ -16,7 +17,7 @@ export default function PriorityInboxPage() {
     <>
       <PageHeader
         highlight={`${attentionTotal} need attention`}
-        title={`Good morning, ${USER.firstName}.`}
+        title={`Good morning, ${firstName}.`}
         subtitle="Here’s what deserves your attention today."
       />
 
