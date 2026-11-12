@@ -2,10 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Check, Copy, Loader2, Send, Sparkles } from "lucide-react";
-import { useProfile } from "@/lib/auth";
+import {
+  Calendar,
+  Check,
+  Copy,
+  Loader2,
+  Send,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
+import { useAuth, useProfile } from "@/lib/auth";
 import { actions } from "@/lib/store";
-import { draftReply } from "@/services/groq";
+import {
+  createFollowUp,
+  discardFollowUp,
+  loadFollowUp,
+  updateFollowUp,
+} from "@/services/aiResponses";
 import { mailtoHref } from "@/lib/actions";
 import type { Message } from "@/lib/types";
 
@@ -88,12 +101,18 @@ export function DetailsPanel({ message: m }: { message: Message }) {
 
 function FollowUp({ message: m }: { message: Message }) {
   const { name: userName } = useProfile();
+  const { user } = useAuth();
   const [state, setState] = useState<"idle" | "loading" | "ready">("idle");
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mounted = useRef(true);
+
+  const uid = user?.uid;
+  // Last text known to be stored, so we only save when the draft really changed.
+  const stored = useRef("");
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     const t = timers.current;
@@ -104,12 +123,26 @@ function FollowUp({ message: m }: { message: Message }) {
     };
   }, []);
 
+  // Show a previously saved draft (from the cache or Firestore) if there is one.
+  useEffect(() => {
+    if (!uid) return;
+    void loadFollowUp(uid, m.id).then((saved) => {
+      if (!saved || !mounted.current) return;
+      stored.current = saved;
+      setDraft(saved);
+      setState("ready");
+    });
+  }, [uid, m.id]);
+
   async function write() {
+    if (!uid) return setError("Please sign in again.");
     setState("loading");
     setError("");
+    setNote("");
     try {
-      const text = await draftReply(m, userName);
+      const text = await createFollowUp(uid, m, userName);
       if (!mounted.current) return;
+      stored.current = text;
       setDraft(text);
       setState("ready");
     } catch (err) {
@@ -117,6 +150,22 @@ function FollowUp({ message: m }: { message: Message }) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setState("idle");
     }
+  }
+
+  async function saveEdits() {
+    if (!uid || draft === stored.current) return;
+    stored.current = draft;
+    const ok = await updateFollowUp(uid, m.id, draft);
+    if (mounted.current) setNote(ok ? "Saved" : "Couldn’t save to your account");
+  }
+
+  async function discard() {
+    if (!uid) return;
+    stored.current = "";
+    setNote("");
+    setState("idle");
+    setDraft("");
+    await discardFollowUp(uid, m.id);
   }
 
   async function copy() {
@@ -177,11 +226,26 @@ function FollowUp({ message: m }: { message: Message }) {
           </p>
           <textarea
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              setNote("");
+            }}
+            onBlur={() => void saveEdits()}
             aria-label="Draft reply"
             className="h-44 w-full resize-none rounded-lg border border-line bg-[#171112] p-3 text-[13px] leading-6 text-ink outline-none focus:border-accent-line"
           />
-          <div className="mt-3 flex justify-end gap-2">
+          <div className="mt-3 flex items-center justify-end gap-2">
+            <span className="mr-auto pl-1 text-[11px] text-muted" aria-live="polite">
+              {note}
+            </span>
+            <button
+              type="button"
+              onClick={() => void discard()}
+              className="flex h-9 items-center gap-2 rounded-lg px-3 text-[12.5px] text-muted transition-colors hover:text-ink"
+            >
+              <Trash2 className="size-3.5" />
+              Discard
+            </button>
             <button
               type="button"
               onClick={copy}
