@@ -35,7 +35,7 @@ export function DetailsPanel({ message: m }: { message: Message }) {
             aria-label="Progress"
           >
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-[#c0584a] to-[#d8695a]"
+              className="h-full rounded-full bg-gradient-to-r from-[#083f7d] to-[#2a7bd0]"
               initial={{ width: 0 }}
               animate={{ width: `${percent}%` }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
@@ -43,7 +43,7 @@ export function DetailsPanel({ message: m }: { message: Message }) {
           </div>
 
           {m.event && (
-            <div className="mt-4 rounded-lg border border-[#3a2a22] bg-[#1d1614] p-3">
+            <div className="mt-4 rounded-lg border border-line bg-surface-2 p-3">
               <p className={eyebrow}>Important date</p>
               <p className="mt-2 flex gap-2 text-[13px] font-medium leading-snug">
                 <Calendar className="mt-0.5 size-3.5 shrink-0 text-muted" />
@@ -170,7 +170,7 @@ function FollowUp({ message: m }: { message: Message }) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="mt-4 rounded-xl border border-accent-line bg-[#2a1411] p-3"
+          className="mt-4 rounded-xl border border-accent-line bg-accent-soft p-3"
         >
           <p className="px-1 pb-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-accent-text">
             Draft reply
@@ -179,7 +179,7 @@ function FollowUp({ message: m }: { message: Message }) {
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             aria-label="Draft reply"
-            className="h-44 w-full resize-none rounded-lg border border-line bg-[#171112] p-3 text-[13px] leading-6 text-ink outline-none focus:border-accent-line"
+            className="h-44 w-full resize-none rounded-lg border border-line bg-canvas p-3 text-[13px] leading-6 text-ink outline-none focus:border-accent-line"
           />
           <div className="mt-3 flex justify-end gap-2">
             <button

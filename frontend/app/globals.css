@@ -11,11 +11,11 @@
   --color-ink: #f3f1ee;
   --color-body: #aeaba7;
   --color-muted: #7f7c78;
-  --color-accent: #c0584a;
-  --color-accent-hover: #cd6858;
-  --color-accent-text: #ee7b66;
-  --color-accent-soft: #2a1814;
-  --color-accent-line: #4b2823;
+  --color-accent: #083f7d;
+  --color-accent-hover: #0a4f9c;
+  --color-accent-text: #cce8f5;
+  --color-accent-soft: #041d3a;
+  --color-accent-line: #083f7d;
 }
 
 :root {
@@ -34,7 +34,7 @@ body {
 }
 
 ::selection {
-  background: #c0584a66;
+  background: #083f7d99;
 }
 
 /* Quiet dark scrollbars to match the wireframes */

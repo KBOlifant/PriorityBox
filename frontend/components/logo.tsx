@@ -1,7 +1,7 @@
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
     <span
-      className="grid shrink-0 place-items-center rounded-[10px] bg-gradient-to-b from-[#d0614f] to-[#b44f42] shadow-[0_4px_14px_-2px_rgba(192,88,74,0.5)]"
+      className="grid shrink-0 place-items-center rounded-[10px] bg-gradient-to-b from-[#0a4f9c] to-[#083f7d] shadow-[0_4px_14px_-2px_rgba(8,63,125,0.6)]"
       style={{ width: size, height: size }}
       aria-hidden
     >

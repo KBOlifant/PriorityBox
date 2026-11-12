@@ -5,6 +5,9 @@ import type { Filter, Message, PageKey } from "./types";
 export const needsAttention = (m: Message) =>
   m.priority === "High" && !m.archived;
 
+export const isToday = (ms?: number) =>
+  ms !== undefined && new Date(ms).toDateString() === new Date().toDateString();
+
 export function inPage(m: Message, page: PageKey): boolean {
   switch (page) {
     case "priority":

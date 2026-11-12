@@ -32,7 +32,7 @@ const NAV: {
 ];
 
 const LABELS = [
-  { name: "Action needed", dot: "bg-[#e8604c]" },
+  { name: "Action needed", dot: "bg-[#C21E29]" },
   { name: "Waiting", dot: "bg-[#e5b45f]" },
   { name: "Event", dot: "bg-[#6fa08a]" },
 ];

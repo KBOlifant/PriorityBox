@@ -20,8 +20,8 @@ export function EventHighlights({ messages }: { messages: Message[] }) {
           whileHover={{ y: -2 }}
           className={`rounded-2xl border p-5 ${
             m.priority === "High"
-              ? "border-[#3f2622] bg-[#1c1513]"
-              : "border-[#33282a] bg-[#1a1516]"
+              ? "border-accent-line bg-[#0a1626]"
+              : "border-line bg-surface"
           }`}
         >
           <div className="flex items-start justify-between">

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Calendar,
+  Check,
   ChevronDown,
   Download,
   ExternalLink,
@@ -83,6 +84,7 @@ export function MessageCard({
         ease: [0.22, 1, 0.36, 1],
         delay: Math.min(index, 6) * 0.04,
       }}
+      whileHover={{ scale: 1.02 }}
       className="flex flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-[#323236]"
     >
       <div
@@ -167,7 +169,23 @@ export function MessageCard({
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-body" />
         </label>
 
-        <div className="ml-auto flex items-center">
+        <div className="ml-auto flex items-center gap-1">
+          {m.archived ? (
+            <span className="flex h-9 items-center gap-1.5 px-2 text-[13px] font-medium text-muted">
+              <Check className="size-4" />
+              Completed
+            </span>
+          ) : (
+            <motion.button
+              type="button"
+              onClick={() => actions.complete(m.id)}
+              whileTap={{ scale: 0.97 }}
+              className="flex h-9 items-center gap-2 rounded-lg bg-accent px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover"
+            >
+              <Check className="size-4" />
+              Complete
+            </motion.button>
+          )}
           <button
             type="button"
             onClick={() => downloadMessage(m)}
@@ -189,7 +207,7 @@ export function MessageCard({
       <AnimatePresence initial={false}>
         {summary !== "closed" && (
           <motion.div key="summary" {...panelMotion} className="overflow-hidden">
-            <div className="mt-4 rounded-xl border border-accent-line bg-[#2a1411] p-4">
+            <div className="mt-4 rounded-xl border border-accent-line bg-accent-soft p-4">
               <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-text">
                 <Sparkles className="size-3.5" />
                 AI summary

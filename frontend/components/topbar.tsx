@@ -28,7 +28,7 @@ export function Topbar() {
           className="relative grid size-10 place-items-center rounded-xl text-body transition-colors hover:bg-white/[0.04] hover:text-ink"
         >
           <Bell className="size-[18px]" strokeWidth={1.7} />
-          <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-[#e8604c]" />
+          <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-[#C21E29]" />
         </button>
         <motion.button
           type="button"

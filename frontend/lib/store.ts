@@ -2,7 +2,10 @@ import { useSyncExternalStore } from "react";
 import { baseMessages } from "./mock-data";
 import type { Filter, Message, Priority } from "./types";
 
-type Overrides = Record<string, { priority?: Priority; remarks?: string }>;
+type Overrides = Record<
+  string,
+  { priority?: Priority; remarks?: string; archived?: boolean; completedAt?: number }
+>;
 type OnboardingStep = 1 | 2 | null;
 
 export interface State {
@@ -95,6 +98,13 @@ export const actions = {
   },
   setRemarks(id: string, remarks: string) {
     overrides = { ...overrides, [id]: { ...overrides[id], remarks } };
+    update({ messages: applyOverrides(overrides) }, true);
+  },
+  complete(id: string) {
+    overrides = {
+      ...overrides,
+      [id]: { ...overrides[id], archived: true, completedAt: Date.now() },
+    };
     update({ messages: applyOverrides(overrides) }, true);
   },
   openConnect: () => update({ onboarding: 2 }),

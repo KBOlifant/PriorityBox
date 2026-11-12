@@ -21,6 +21,8 @@ export interface Message {
   priority: Priority;
   waiting: boolean;
   archived: boolean;
+  /** Epoch ms when the user marked it complete. */
+  completedAt?: number;
   progress: { stage: string; percent: number };
   tags: string[];
   remarks: string;
