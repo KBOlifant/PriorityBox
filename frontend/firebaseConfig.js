@@ -1,11 +1,13 @@
+// Values come from .env (see .env.example). NEXT_PUBLIC_ vars must be
+// referenced literally so Next can inline them into the browser bundle.
 const firebaseConfig = {
-  apiKey: "AIzaSyD-R9J1WxPMXlBzubrhOCqAGaRuaUYV8DI",
-  authDomain: "priority-box-5bd9d.firebaseapp.com",
-  projectId: "priority-box-5bd9d",
-  storageBucket: "priority-box-5bd9d.firebasestorage.app",
-  messagingSenderId: "550943321329",
-  appId: "1:550943321329:web:1238e69d0e4bd112668d50",
-  measurementId: "G-YX1MEWQVR6"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 export default firebaseConfig;
