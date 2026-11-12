@@ -3,7 +3,9 @@ import type { Message } from "./types";
 
 export type AiTask = "summary" | "draft";
 
-/** Calls the server-side AI route; the Groq key never reaches the browser. */
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+/** Calls the backend AI endpoint; the Groq key lives only on the backend. */
 export async function generate(
   task: AiTask,
   m: Message,
@@ -14,7 +16,7 @@ export async function generate(
 
   let res: Response;
   try {
-    res = await fetch("/api/ai", {
+    res = await fetch(`${API_URL}/api/ai`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
