@@ -178,12 +178,13 @@ export const gmail: MailProvider = {
     }
   },
 
-  async fetchInbox(account, limit): Promise<RawMail[]> {
+  async fetchInbox(account, { limit, cursor }) {
     const token = cachedToken();
     if (!token) throw new MailError("Gmail session expired. Reconnect to continue.");
 
-    const list = await api<{ messages?: { id: string }[] }>(
-      `/messages?maxResults=${limit}&labelIds=INBOX`,
+    const page = cursor ? `&pageToken=${encodeURIComponent(cursor)}` : "";
+    const list = await api<{ messages?: { id: string }[]; nextPageToken?: string }>(
+      `/messages?maxResults=${limit}&labelIds=INBOX${page}`,
       token,
     );
     const ids = (list.messages ?? []).map((m) => m.id);
@@ -196,7 +197,7 @@ export const gmail: MailProvider = {
       );
       mail.push(...messages.map((m) => normalizeGmail(m, account)));
     }
-    return mail;
+    return { mail, next: list.nextPageToken };
   },
 
   async disconnect() {

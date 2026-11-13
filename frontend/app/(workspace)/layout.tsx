@@ -1,5 +1,6 @@
 import { AuthGate } from "@/components/auth-gate";
-import { MailBanner, MailSync } from "@/components/mail-sync";
+import { AiFilterChip, MailBanner, MailSync } from "@/components/mail-sync";
+import { Pagination } from "@/components/pagination";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 import { Onboarding } from "@/components/onboarding";
@@ -18,7 +19,9 @@ export default function WorkspaceLayout({
           <main className="flex-1 px-6 pb-20 pt-10 lg:px-8">
             <div className="mx-auto w-full max-w-[1160px]">
               <MailBanner />
+              <AiFilterChip />
               {children}
+              <Pagination />
             </div>
           </main>
         </div>

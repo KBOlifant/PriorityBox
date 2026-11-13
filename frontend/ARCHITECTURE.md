@@ -33,7 +33,7 @@ Rules:
 | `services/firestore/crud.ts` | Generic create / get / list / update / upsert / remove / watch for any collection path. Adds `createdAt` / `updatedAt` |
 | `services/firestore/users.ts` | `users/{uid}` profile CRUD |
 | `services/firestore/messageState.ts` | `users/{uid}/messageState/{messageId}` CRUD for the user's own edits (priority, remarks) |
-| `services/groq/` | `summarizeEmail` and `draftReply` using `openai/gpt-oss-120b` |
+| `services/groq/` | `summarizeEmail` and `draftReply` using `openai/gpt-oss-120b`; `evaluate.ts` interprets the AI bar (find emails, re-mark priority, remember urgency rules) |
 | `services/mail/` | Real inboxes behind one `MailProvider` interface: `gmail.ts` (Google Identity Services + Gmail API), `outlook.ts` (MSAL + Microsoft Graph), `parse.ts` (normalising messages), `classify.ts` (AI priority, dates and progress) |
 | `services/firestore/mailAccounts.ts` | Which accounts are connected: `users/{uid}/mailAccounts/{provider}` (address only, never tokens) |
 | `services/firestore/classifications.ts` | AI analysis per message: `users/{uid}/classifications/{messageId}` (no email text) |
@@ -75,6 +75,23 @@ data (`lib/mock-data.ts`).
 - Email text is sent to Groq for classification, summaries and drafts.
 - Gmail uses the restricted `gmail.readonly` scope. Until Google verifies the
   app, only accounts listed as test users can connect.
+
+### Paging
+
+`services/mail/pager.ts` merges all connected accounts newest-first and hands
+out pages of exactly 25. Each account is fetched lazily (Gmail `pageToken`,
+Graph `$skip`), so "Next" only fetches what that page needs. Pages already
+fetched are kept, so "Previous" is instant. Page analysis is queued one page at
+a time, because Groq's free tier allows 8,000 tokens per minute.
+
+### AI bar
+
+The input next to search sends a free-text instruction plus the newest 60 loaded
+messages (compact, short refs instead of ids) to Groq. The reply can show a set
+of matching emails (an "AI search" chip appears above the page, matches span
+every loaded page), re-mark priorities, and remember a standing "what counts as
+urgent" rule. Rules are kept in the browser and passed into the classifier for
+pages loaded later.
 
 ### Setup
 

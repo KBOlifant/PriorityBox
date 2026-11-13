@@ -7,6 +7,18 @@ export interface SyncState {
   status: "idle" | "loading" | "classifying" | "ready" | "error";
   error?: string;
   accounts: AccountStatus[];
+  /** Page being viewed (1-based). */
+  page: number;
+  /** How many pages have been fetched so far. */
+  loadedPages: number;
+  /** True while the inboxes have more mail to fetch. */
+  hasMore: boolean;
+}
+
+/** A search result chosen by the AI: only these messages are shown. */
+export interface AiFilter {
+  ids: string[];
+  query: string;
 }
 
 type Overrides = Record<
@@ -24,8 +36,12 @@ export interface State {
   /** True while showing the built-in sample messages (no account connected). */
   usingSample: boolean;
   sync: SyncState;
+  aiFilter: AiFilter | null;
+  /** The user's own definitions of "urgent", applied to future classification. */
+  rules: string[];
 }
 
+const MAX_RULES = 5;
 const STORAGE_KEY = "priority:v1";
 const listeners = new Set<() => void>();
 
@@ -40,7 +56,9 @@ let state: State = {
   onboarding: null,
   onboarded: true,
   usingSample: true,
-  sync: { status: "idle", accounts: [] },
+  sync: { status: "idle", accounts: [], page: 1, loadedPages: 0, hasMore: false },
+  aiFilter: null,
+  rules: [],
 };
 const serverState = state;
 
@@ -51,7 +69,7 @@ const applyOverrides = (o: Overrides): Message[] =>
 function hydrate() {
   if (hydrated || typeof window === "undefined") return;
   hydrated = true;
-  let saved: { overrides?: Overrides; onboarded?: boolean } = {};
+  let saved: { overrides?: Overrides; onboarded?: boolean; rules?: string[] } = {};
   try {
     saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
   } catch {
@@ -64,6 +82,7 @@ function hydrate() {
     messages: applyOverrides(overrides),
     onboarded,
     onboarding: onboarded ? null : 1,
+    rules: Array.isArray(saved.rules) ? saved.rules.slice(0, MAX_RULES) : [],
   };
 }
 
@@ -71,7 +90,7 @@ function persist() {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ overrides, onboarded: state.onboarded }),
+      JSON.stringify({ overrides, onboarded: state.onboarded, rules: state.rules }),
     );
   } catch {
     /* storage unavailable — edits simply won't persist */
@@ -109,6 +128,20 @@ export const actions = {
     source = list ?? baseMessages;
     update({ messages: applyOverrides(overrides), usingSample: list === null });
   },
+  /** Re-marks several messages at once (from the AI bar). */
+  setPriorities(changes: Record<string, Priority>) {
+    for (const [id, priority] of Object.entries(changes)) {
+      overrides = { ...overrides, [id]: { ...overrides[id], priority } };
+    }
+    update({ messages: applyOverrides(overrides) }, true);
+  },
+  setAiFilter: (aiFilter: AiFilter | null) => update({ aiFilter }),
+  addRule(rule: string) {
+    if (state.rules.includes(rule)) return;
+    update({ rules: [rule, ...state.rules].slice(0, MAX_RULES) }, true);
+  },
+  removeRule: (rule: string) =>
+    update({ rules: state.rules.filter((r) => r !== rule) }, true),
   setSync: (patch: Partial<SyncState>) => update({ sync: { ...state.sync, ...patch } }),
   setQuery: (query: string) => update({ query }),
   setFilter: (filter: Filter) => update({ filter }),
@@ -134,3 +167,9 @@ export const actions = {
   },
   finishOnboarding: () => update({ onboarding: null, onboarded: true }, true),
 };
+
+/** Current rules, for non-React code. */
+export function getRules(): string[] {
+  hydrate();
+  return state.rules;
+}

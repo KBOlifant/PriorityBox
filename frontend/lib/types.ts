@@ -32,4 +32,6 @@ export interface Message {
   provider?: "gmail" | "outlook";
   /** Opens the message in the provider's web mail. */
   webLink?: string;
+  /** Which fetched page (1-based) a real message belongs to. */
+  page?: number;
 }

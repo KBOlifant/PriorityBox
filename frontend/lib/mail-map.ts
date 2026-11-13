@@ -43,7 +43,7 @@ function preview(body: string, subject: string) {
 }
 
 /** Real mail -> the app's Message. `c` is missing until the AI analysis finishes. */
-export function toMessage(m: RawMail, c?: Classification): Message {
+export function toMessage(m: RawMail, c?: Classification, page?: number): Message {
   return {
     id: m.id,
     sender: m.fromName,
@@ -65,5 +65,6 @@ export function toMessage(m: RawMail, c?: Classification): Message {
     body: m.body,
     provider: m.provider,
     webLink: m.webLink,
+    page,
   };
 }

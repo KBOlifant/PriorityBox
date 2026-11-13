@@ -4,7 +4,6 @@ import {
   MailError,
   type ConnectedAccount,
   type MailProvider,
-  type RawMail,
 } from "./types";
 
 /**
@@ -100,10 +99,12 @@ export const outlook: MailProvider = {
     }
   },
 
-  async fetchInbox(account, limit): Promise<RawMail[]> {
+  async fetchInbox(account, { limit, cursor }) {
     const token = await accessToken(account);
+    const skip = Number(cursor) || 0;
     const query = [
       `$top=${limit}`,
+      ...(skip ? [`$skip=${skip}`] : []),
       `$orderby=${encodeURIComponent("receivedDateTime desc")}`,
       `$select=${encodeURIComponent("id,subject,from,receivedDateTime,bodyPreview,body,webLink")}`,
     ].join("&");
@@ -133,8 +134,15 @@ export const outlook: MailProvider = {
     }
     if (!res.ok) throw new MailError("Outlook returned an error. Try again.");
 
-    const data = (await res.json()) as { value?: GraphMessage[] };
-    return (data.value ?? []).map((m) => normalizeGraph(m, account));
+    const data = (await res.json()) as {
+      value?: GraphMessage[];
+      "@odata.nextLink"?: string;
+    };
+    return {
+      mail: (data.value ?? []).map((m) => normalizeGraph(m, account)),
+      // Graph signals "more" with a nextLink; we page with $skip instead of following it.
+      next: data["@odata.nextLink"] ? String(skip + limit) : undefined,
+    };
   },
 
   async disconnect(account) {

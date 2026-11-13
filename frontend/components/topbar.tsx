@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Bell, Plus, RefreshCw, Search } from "lucide-react";
+import { AiBar } from "./ai-bar";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
 import { actions, useStore } from "@/lib/store";
@@ -13,7 +14,8 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-20 flex h-[72px] shrink-0 items-center justify-between gap-4 border-b border-line bg-canvas/85 px-9 backdrop-blur-md">
-      <label className="relative block w-full max-w-[420px]">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <label className="relative block w-full max-w-[300px]">
         <span className="sr-only">Search messages</span>
         <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted" />
         <input
@@ -24,6 +26,8 @@ export function Topbar() {
           className="h-10 w-full rounded-xl border border-line bg-surface pl-11 pr-4 text-[13px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent-line focus:ring-2 focus:ring-accent/20 [&::-webkit-search-cancel-button]:hidden"
         />
       </label>
+      <AiBar />
+      </div>
 
       <div className="flex items-center gap-3">
         {!usingSample && user && (

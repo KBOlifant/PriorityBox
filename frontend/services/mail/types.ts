@@ -52,6 +52,10 @@ export interface MailProvider {
   connect(): Promise<ConnectedAccount>;
   /** Tries to get a valid token without UI. Returns false if the user must reconnect. */
   restore(account: string): Promise<boolean>;
-  fetchInbox(account: string, limit: number): Promise<RawMail[]>;
+  /** One batch of the inbox, newest first. `next` is the cursor for the following batch. */
+  fetchInbox(
+    account: string,
+    options: { limit: number; cursor?: string },
+  ): Promise<{ mail: RawMail[]; next?: string }>;
   disconnect(account: string): Promise<void>;
 }

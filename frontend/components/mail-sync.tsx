@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
 import { actions, useStore } from "@/lib/store";
@@ -60,6 +60,40 @@ export function MailBanner() {
                 Reconnect
               </button>
             )}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/** Shows the active AI search and lets the user clear it. */
+export function AiFilterChip() {
+  const { aiFilter } = useStore();
+  const n = aiFilter?.ids.length ?? 0;
+
+  return (
+    <AnimatePresence initial={false}>
+      {aiFilter && (
+        <motion.div
+          key="ai-filter"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          className="overflow-hidden"
+        >
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-accent-line bg-accent-soft px-4 py-2.5 text-[13px]">
+            <Sparkles className="size-4 shrink-0 text-accent-text" />
+            <span className="min-w-0 flex-1 truncate text-body">
+              AI search: “{aiFilter.query}” · {n} {n === 1 ? "match" : "matches"}
+            </span>
+            <button
+              type="button"
+              onClick={() => actions.setAiFilter(null)}
+              className="shrink-0 font-medium text-accent-text hover:underline"
+            >
+              Clear
+            </button>
           </div>
         </motion.div>
       )}
