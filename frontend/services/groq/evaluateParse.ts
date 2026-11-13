@@ -7,6 +7,8 @@ export interface Evaluation {
   reply: string;
   /** Message ids to show as a search result, or null when the request wasn't a search. */
   show: string[] | null;
+  /** Senders the user named (names, addresses or companies). The app matches these itself. */
+  from: string[];
   /** Priority changes to apply. */
   priorities: { id: string; priority: Priority }[];
   /** A standing preference about what counts as urgent, to remember. */
@@ -33,6 +35,10 @@ export function parseEvaluation(reply: string, validIds: Set<string>): Evaluatio
     ? [...new Set(data.show.filter((id): id is string => typeof id === "string" && validIds.has(id)))]
     : null;
 
+  const from = Array.isArray(data.from)
+    ? data.from.map((t) => text(t, 60)).filter(Boolean).slice(0, 5)
+    : [];
+
   const seen = new Set<string>();
   const priorities: Evaluation["priorities"] = [];
   if (Array.isArray(data.priorities)) {
@@ -49,6 +55,7 @@ export function parseEvaluation(reply: string, validIds: Set<string>): Evaluatio
   return {
     reply: text(data.reply, 300) || "Done.",
     show,
+    from,
     priorities,
     rule: text(data.rule, 160) || null,
   };

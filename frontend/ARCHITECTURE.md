@@ -93,6 +93,12 @@ every loaded page), re-mark priorities, and remember a standing "what counts as
 urgent" rule. Rules are kept in the browser and passed into the classifier for
 pages loaded later.
 
+Who an email is from is matched in code (`services/groq/peopleMatch.ts`), not
+by the model: the model only says which senders the user means, and the app
+matches names, addresses and companies against every loaded message. For
+"sender + topic" searches a second request judges the topic over just that
+sender's emails, so older pages are still covered.
+
 ### Setup
 
 **Gmail** (Google Cloud console, the project behind the Firebase app is fine)
