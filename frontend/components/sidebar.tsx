@@ -49,8 +49,8 @@ export function Sidebar() {
     <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-line bg-sidebar md:flex">
       <div className="flex h-[72px] items-center gap-3 px-6">
         <LogoMark />
-        <span className="text-[15px] font-semibold tracking-tight">
-          Priority
+        <span className="text-[15px] font-semibold text-zinc-300">
+          PriorityBox
         </span>
       </div>
 
