@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  BookOpen,
   Calendar,
   Check,
   ChevronDown,
@@ -11,8 +12,10 @@ import {
   Sparkles,
 } from "lucide-react";
 import { PriorityBadge } from "./priority-badge";
+import { EmailModal } from "./email-modal";
 import { RevealButton } from "./reveal-button";
 import { DetailsPanel } from "./details-panel";
+import { needsAttention } from "@/lib/selectors";
 import { actions } from "@/lib/store";
 import { summarizeEmail } from "@/services/groq";
 import { downloadMessage, mailtoHref } from "@/lib/actions";
@@ -35,6 +38,11 @@ export function MessageCard({
   index: number;
 }) {
   const [open, setOpen] = useState(false);
+  // "Read full email" opens the whole message in a dialog; the button only exists once the card is expanded.
+  const [reading, setReading] = useState(false);
+  const closeReader = useCallback(() => setReading(false), []);
+  const [truncated, setTruncated] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
   const [summary, setSummary] = useState<SummaryState>("closed");
   const [summaryText, setSummaryText] = useState("");
   const [summaryError, setSummaryError] = useState("");
@@ -49,6 +57,17 @@ export function MessageCard({
   // Bumped on every toggle so a response that arrives after the panel was
   // closed (or the card unmounted) is ignored.
   const request = useRef(0);
+
+  // Is there more email than the 5-line view shows? Decides whether to offer the button.
+  useEffect(() => {
+    if (!open) return;
+    const el = textRef.current;
+    if (el) setTruncated(el.scrollHeight > el.clientHeight + 1);
+  }, [open, m.body, m.preview]);
+
+  function toggleOpen() {
+    setOpen(!open);
+  }
 
   useEffect(() => {
     const r = request;
@@ -124,11 +143,11 @@ export function MessageCard({
         tabIndex={0}
         aria-expanded={open}
         aria-label={`${open ? "Hide" : "Show"} details for ${m.subject}`}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setOpen((v) => !v);
+            toggleOpen();
           }
         }}
         className="-m-1 flex cursor-pointer gap-3.5 rounded-xl p-1 outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
@@ -151,11 +170,19 @@ export function MessageCard({
             </p>
             <PriorityBadge priority={m.priority} />
           </div>
-          <h3 className="mt-1.5 text-[16px] font-semibold leading-snug">
+          <h3
+            title={m.subject}
+            className="mt-1.5 line-clamp-2 text-[16px] font-semibold leading-snug"
+          >
             {m.subject}
           </h3>
-          <p className="mt-1.5 pr-10 text-[13.5px] leading-6 text-body">
-            {m.preview}
+          <p
+            ref={textRef}
+            className={`mt-1.5 pr-10 text-[13.5px] leading-6 text-body ${
+              open ? "line-clamp-5" : "line-clamp-3"
+            }`}
+          >
+            {open ? (m.body ?? m.preview) : m.preview}
           </p>
           {m.event && (
             <span className="mt-3 inline-flex min-h-8 max-w-full items-center gap-2 rounded-lg border border-line bg-canvas/50 px-3 py-1 text-[12px] leading-snug text-body">
@@ -168,9 +195,23 @@ export function MessageCard({
         </div>
       </div>
 
+      {/* Only an expanded card offers the whole email, and only if there is more to read. */}
+      {open && truncated && (
+        <button
+          type="button"
+          onClick={() => setReading(true)}
+          aria-haspopup="dialog"
+          className="ml-[54px] mt-3 flex items-center gap-1.5 self-start rounded-lg text-[12.5px] font-medium text-accent-text outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/40"
+        >
+          <BookOpen className="size-3.5" />
+          Read full email
+        </button>
+      )}
+
       <div className="mt-5 flex items-center gap-2 border-t border-line pt-4">
         <RevealButton
-          tone="alert"
+          // Red only for emails that need attention; everything else stays blue.
+          tone={needsAttention(m) ? "alert" : "soft"}
           icon={<Sparkles className="size-3.5 shrink-0" />}
           label={summaryLabel}
           onClick={toggleSummary}
@@ -253,6 +294,9 @@ export function MessageCard({
             <DetailsPanel message={m} />
           </motion.div>
         )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {reading && <EmailModal message={m} onClose={closeReader} />}
       </AnimatePresence>
     </motion.article>
   );
