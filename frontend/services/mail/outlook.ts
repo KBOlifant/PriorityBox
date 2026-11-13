@@ -99,6 +99,23 @@ export const outlook: MailProvider = {
     }
   },
 
+  async fetchMessage(account, nativeId) {
+    const token = await accessToken(account);
+    const select = encodeURIComponent("id,subject,from,receivedDateTime,bodyPreview,body,webLink");
+    let res: Response;
+    try {
+      res = await fetch(`${GRAPH}/me/messages/${encodeURIComponent(nativeId)}?$select=${select}`, {
+        headers: { Authorization: `Bearer ${token}`, Prefer: 'outlook.body-content-type="text"' },
+      });
+    } catch {
+      throw new MailError("Can’t reach Outlook. Check your connection.");
+    }
+    if (res.status === 404) throw new MailError("That email no longer exists in Outlook.");
+    if (res.status === 401) throw new MailError("Outlook session expired. Reconnect to continue.");
+    if (!res.ok) throw new MailError("Outlook returned an error. Try again.");
+    return normalizeGraph((await res.json()) as GraphMessage, account);
+  },
+
   async fetchInbox(account, { limit, cursor }) {
     const token = await accessToken(account);
     const skip = Number(cursor) || 0;

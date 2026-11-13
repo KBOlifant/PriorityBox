@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import { baseMessages } from "./mock-data";
 import type { Filter, Message, Priority } from "./types";
+import type { SavedRef } from "@/services/firestore/savedEmails";
 import type { AccountStatus } from "@/services/mail/types";
 
 export interface SyncState {
@@ -43,6 +44,10 @@ export interface State {
   rules: string[];
   /** How many hours emails are kept on this device so they survive a refresh. 0 = don't keep. */
   cacheHours: number;
+  /** Saved-for-later references, including ones the user removed (kept as markers). */
+  saved: SavedRef[];
+  /** True once the saved list has been read from Firestore, so auto-save can't create duplicates. */
+  savedLoaded: boolean;
 }
 
 const MAX_RULES = 5;
@@ -65,6 +70,8 @@ let state: State = {
   aiFilter: null,
   rules: [],
   cacheHours: DEFAULT_CACHE_HOURS,
+  saved: [],
+  savedLoaded: false,
 };
 const serverState = state;
 
@@ -157,6 +164,11 @@ export const actions = {
   },
   setAiFilter: (aiFilter: AiFilter | null) => update({ aiFilter }),
   setCacheHours: (cacheHours: number) => update({ cacheHours }, true),
+  setSaved: (saved: SavedRef[]) => update({ saved, savedLoaded: true }),
+  /** Adds or replaces one saved reference (matched by id). */
+  upsertSaved(ref: SavedRef) {
+    update({ saved: [ref, ...state.saved.filter((s) => s.id !== ref.id)] });
+  },
   addRule(rule: string) {
     if (state.rules.includes(rule)) return;
     update({ rules: [rule, ...state.rules].slice(0, MAX_RULES) }, true);
@@ -193,6 +205,12 @@ export const actions = {
 export function getRules(): string[] {
   hydrate();
   return state.rules;
+}
+
+/** Current saved references, for non-React code. */
+export function getSaved(): SavedRef[] {
+  hydrate();
+  return state.saved;
 }
 
 /** Current cache lifetime in hours, for non-React code. */

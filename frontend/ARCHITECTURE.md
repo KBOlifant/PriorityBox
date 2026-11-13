@@ -81,6 +81,17 @@ data (`lib/mock-data.ts`).
 - Gmail uses the restricted `gmail.readonly` scope. Until Google verifies the
   app, only accounts listed as test users can connect.
 
+### Saved for later
+
+Emails are saved as **references** in `users/{uid}/savedEmails/{id}`: which
+message it is (provider, account, id), the web link, and the sender and subject
+so the list is readable offline. The body is never stored. High priority emails
+are saved automatically (`SavedSync` in `components/mail-sync.tsx`); any email
+can also be saved with the bookmark button. Removing one keeps a `removed`
+marker so auto-save doesn't bring it back. "Read email" on the Saved screen
+fetches the message from Gmail / Outlook by id (`MailProvider.fetchMessage`),
+so it needs the account to be connected.
+
 ### Paging
 
 `services/mail/pager.ts` merges all connected accounts newest-first and hands

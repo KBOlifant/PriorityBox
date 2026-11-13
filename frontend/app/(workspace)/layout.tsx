@@ -1,5 +1,5 @@
 import { AuthGate } from "@/components/auth-gate";
-import { AiFilterChip, MailBanner, MailSync } from "@/components/mail-sync";
+import { AiFilterChip, MailBanner, MailSync, SavedSync } from "@/components/mail-sync";
 import { Pagination } from "@/components/pagination";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
@@ -27,6 +27,7 @@ export default function WorkspaceLayout({
         </div>
         <Onboarding />
         <MailSync />
+        <SavedSync />
       </div>
     </AuthGate>
   );

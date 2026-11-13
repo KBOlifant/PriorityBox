@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Archive,
+  Bookmark,
   Calendar,
   Clock,
   Inbox,
@@ -29,6 +30,7 @@ const NAV: {
   { key: "waiting", href: "/waiting", label: "Waiting", icon: Clock },
   { key: "events", href: "/events", label: "Events", icon: Calendar },
   { key: "archive", href: "/archive", label: "Archive", icon: Archive },
+  { key: "saved", href: "/saved", label: "Saved", icon: Bookmark },
 ];
 
 const LABELS = [

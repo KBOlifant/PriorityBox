@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
+import { loadSaved, missingAutoSaves, saveMessage } from "@/lib/saved";
 import { actions, useStore } from "@/lib/store";
 import { timeAgo } from "@/services/mailCache";
 
@@ -106,4 +107,35 @@ export function AiFilterChip() {
       )}
     </AnimatePresence>
   );
+}
+
+/**
+ * Keeps the saved-for-later list in step: loads it on sign-in, and saves a
+ * reference to every High priority email that isn't saved yet. Renders nothing.
+ */
+export function SavedSync() {
+  const { user } = useAuth();
+  const { messages, saved, savedLoaded } = useStore();
+  const uid = user?.uid;
+  const inFlight = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (uid) void loadSaved(uid);
+  }, [uid]);
+
+  useEffect(() => {
+    // Wait for the saved list so an email that is already saved isn't saved twice.
+    if (!uid || !savedLoaded) return;
+    const missing = missingAutoSaves(messages, saved).filter((m) => !inFlight.current.has(m.id));
+    if (!missing.length) return;
+    const timer = setTimeout(() => {
+      for (const m of missing) {
+        inFlight.current.add(m.id);
+        void saveMessage(uid, m, true);
+      }
+    }, 800); // let priorities settle (AI analysis, re-marks) before saving
+    return () => clearTimeout(timer);
+  }, [uid, messages, saved, savedLoaded]);
+
+  return null;
 }

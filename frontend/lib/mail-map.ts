@@ -2,18 +2,18 @@ import { formatEventDate } from "@/services/mail/classifyParse";
 import type { Classification, RawMail } from "@/services/mail/types";
 import type { Message } from "./types";
 
-const COLORS = [
+export const COLORS = [
   "#c25b4c", "#8b6558", "#6f8466", "#6b5d8c",
   "#44687a", "#7a6048", "#4f7a72", "#5a6585",
 ];
 
-function hash(s: string) {
+export function hash(s: string) {
   let h = 0;
   for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return h;
 }
 
-function initials(name: string, email: string) {
+export function initials(name: string, email: string) {
   const words = name.replace(/[^\p{L}\p{N}\s]/gu, " ").trim().split(/\s+/).filter(Boolean);
   const letters = words.length > 1
     ? words[0][0] + words[words.length - 1][0]
@@ -66,5 +66,6 @@ export function toMessage(m: RawMail, c?: Classification, page?: number): Messag
     provider: m.provider,
     webLink: m.webLink,
     page,
+    account: m.account,
   };
 }

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Bookmark,
+  BookmarkCheck,
   BookOpen,
   Calendar,
   Check,
@@ -15,6 +17,8 @@ import { PriorityBadge } from "./priority-badge";
 import { EmailModal } from "./email-modal";
 import { RevealButton } from "./reveal-button";
 import { DetailsPanel } from "./details-panel";
+import { useAuth } from "@/lib/auth";
+import { isSavable, saveMessage, unsaveMessage } from "@/lib/saved";
 import { needsAttention } from "@/lib/selectors";
 import { actions } from "@/lib/store";
 import { summarizeEmail } from "@/services/groq";
@@ -33,10 +37,14 @@ const panelMotion = {
 export function MessageCard({
   message: m,
   index,
+  saved = false,
 }: {
   message: Message;
   index: number;
+  /** Whether this email is in the user's saved-for-later list. */
+  saved?: boolean;
 }) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   // "Read full email" opens the whole message in a dialog; the button only exists once the card is expanded.
   const [reading, setReading] = useState(false);
@@ -121,6 +129,21 @@ export function MessageCard({
           label="Download"
           onClick={() => downloadMessage(m)}
         />
+        {isSavable(m) && user && (
+          <RevealButton
+            icon={
+              saved ? (
+                <BookmarkCheck className="size-4 shrink-0 text-accent-text" />
+              ) : (
+                <Bookmark className="size-4 shrink-0" />
+              )
+            }
+            label={saved ? "Remove from saved" : "Save for later"}
+            onClick={() =>
+              void (saved ? unsaveMessage(user.uid, m.id) : saveMessage(user.uid, m))
+            }
+          />
+        )}
         {link ? (
           <RevealButton
             icon={<ExternalLink className="size-4 shrink-0" />}

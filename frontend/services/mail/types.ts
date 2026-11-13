@@ -52,6 +52,8 @@ export interface MailProvider {
   connect(): Promise<ConnectedAccount>;
   /** Tries to get a valid token without UI. Returns false if the user must reconnect. */
   restore(account: string): Promise<boolean>;
+  /** One message by its provider id (without the "gmail:" / "outlook:" prefix). */
+  fetchMessage(account: string, nativeId: string): Promise<RawMail>;
   /** One batch of the inbox, newest first. `next` is the cursor for the following batch. */
   fetchInbox(
     account: string,

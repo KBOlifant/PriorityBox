@@ -149,6 +149,9 @@ async function api<T>(path: string, token: string): Promise<T> {
       "Gmail refused access. Make sure the Gmail API is enabled and this account is a test user.",
     );
   }
+  if (res.status === 404) {
+    throw new MailError("That email no longer exists in Gmail.");
+  }
   if (res.status === 429) {
     throw new MailError("Gmail is rate limiting requests. Try again shortly.");
   }
@@ -176,6 +179,13 @@ export const gmail: MailProvider = {
     } catch {
       return false;
     }
+  },
+
+  async fetchMessage(account, nativeId) {
+    const token = cachedToken();
+    if (!token) throw new MailError("Gmail session expired. Reconnect to continue.");
+    const msg = await api<GmailMessage>(`/messages/${encodeURIComponent(nativeId)}?format=full`, token);
+    return normalizeGmail(msg, account);
   },
 
   async fetchInbox(account, { limit, cursor }) {
