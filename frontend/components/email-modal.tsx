@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { ExternalLink, X } from "lucide-react";
 import type { Message } from "@/lib/types";
+import { messageLink } from "@/services/mail/parse";
 
 /** The whole email in a dialog. Closes on Escape, the backdrop, or the close button. */
 export function EmailModal({
@@ -27,7 +28,7 @@ export function EmailModal({
     };
   }, [onClose]);
 
-  const link = m.webLink?.startsWith("https://") ? m.webLink : null;
+  const link = messageLink(m);
   const titleId = `email-title-${m.id}`;
 
   // Rendered in a portal: the card has a hover transform, which would otherwise

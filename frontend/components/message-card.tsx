@@ -13,11 +13,12 @@ import {
   ChevronDown,
   Download,
   ExternalLink,
-  RefreshCw,
   Sparkles,
 } from "lucide-react";
+import { AiSummaryPanel, panelMotion, useAiSummary } from "./ai-summary";
 import { PriorityBadge } from "./priority-badge";
 import { EmailModal } from "./email-modal";
+import { messageLink } from "@/services/mail/parse";
 import { RevealButton } from "./reveal-button";
 import { DetailsPanel } from "./details-panel";
 import { useAuth } from "@/lib/auth";
@@ -25,18 +26,8 @@ import { deleteManualEntry } from "@/lib/manual";
 import { isSavable, saveMessage, unsaveMessage } from "@/lib/saved";
 import { needsAttention } from "@/lib/selectors";
 import { actions } from "@/lib/store";
-import { loadSummary } from "@/services/aiResponses";
 import { downloadMessage, mailtoHref } from "@/lib/actions";
 import type { Message, Priority } from "@/lib/types";
-
-type SummaryState = "closed" | "loading" | "open";
-
-const panelMotion = {
-  initial: { height: 0, opacity: 0 },
-  animate: { height: "auto", opacity: 1 },
-  exit: { height: 0, opacity: 0 },
-  transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
-};
 
 export function MessageCard({
   message: m,
@@ -57,21 +48,9 @@ export function MessageCard({
   const closeReader = useCallback(() => setReading(false), []);
   const [truncated, setTruncated] = useState(false);
   const textRef = useRef<HTMLParagraphElement>(null);
-  const [summary, setSummary] = useState<SummaryState>("closed");
-  const [summaryText, setSummaryText] = useState("");
-  const [summaryError, setSummaryError] = useState("");
+  const ai = useAiSummary(m);
   // Real mail links straight to the message in Gmail / Outlook on the web.
-  const link = m.webLink?.startsWith("https://") ? m.webLink : null;
-  const summaryLabel =
-    summary === "closed"
-      ? "Summarize with AI"
-      : summary === "loading"
-        ? "Summarizing…"
-        : "Hide AI summary";
-  // Bumped on every toggle so a response that arrives after the panel was
-  // closed (or the card unmounted) is ignored.
-  const request = useRef(0);
-
+  const link = messageLink(m);
   // Is there more email than the 5-line view shows? Decides whether to offer the button.
   useEffect(() => {
     if (!open) return;
@@ -87,42 +66,6 @@ export function MessageCard({
 
   function toggleOpen() {
     setOpen(!open);
-  }
-
-  useEffect(() => {
-    const r = request;
-    return () => {
-      r.current += 1;
-    };
-  }, []);
-
-  function toggleSummary() {
-    if (summary !== "closed") {
-      request.current += 1;
-      return setSummary("closed");
-    }
-    if (summaryText) return setSummary("open");
-    void fetchSummary();
-  }
-
-  async function fetchSummary(refresh = false) {
-    if (!user) {
-      setSummaryError("Please sign in again.");
-      return setSummary("open");
-    }
-    const id = ++request.current;
-    setSummaryError("");
-    setSummary("loading");
-    try {
-      const text = await loadSummary(user.uid, m, { refresh });
-      if (id !== request.current) return;
-      setSummaryText(text);
-      setSummary("open");
-    } catch (err) {
-      if (id !== request.current) return;
-      setSummaryError(err instanceof Error ? err.message : "Something went wrong.");
-      setSummary("open");
-    }
   }
 
   return (
@@ -273,8 +216,8 @@ export function MessageCard({
           // Red only for emails that need attention; everything else stays blue.
           tone={needsAttention(m) ? "alert" : "soft"}
           icon={<Sparkles className="size-3.5 shrink-0" />}
-          label={summaryLabel}
-          onClick={toggleSummary}
+          label={ai.label}
+          onClick={ai.toggle}
         />
 
         <label className="relative">
@@ -313,54 +256,7 @@ export function MessageCard({
       </div>
 
       <AnimatePresence initial={false}>
-        {summary !== "closed" && (
-          <motion.div key="summary" {...panelMotion} className="overflow-hidden">
-            <div className="mt-4 rounded-xl border border-accent-line bg-accent-soft p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-text">
-                  <Sparkles className="size-3.5" />
-                  AI summary
-                </p>
-                {summary === "open" && !summaryError && (
-                  <button
-                    type="button"
-                    onClick={() => void fetchSummary(true)}
-                    className="flex items-center gap-1.5 text-[11.5px] text-muted transition-colors hover:text-accent-text"
-                  >
-                    <RefreshCw className="size-3" />
-                    Regenerate
-                  </button>
-                )}
-              </div>
-              {summary === "loading" ? (
-                <div className="mt-3 space-y-2" aria-live="polite">
-                  <div className="h-3 w-full animate-pulse rounded bg-accent-line/70" />
-                  <div className="h-3 w-4/5 animate-pulse rounded bg-accent-line/70" />
-                  <div className="h-3 w-3/5 animate-pulse rounded bg-accent-line/70" />
-                </div>
-              ) : summaryError ? (
-                <p role="alert" className="mt-2.5 text-[13.5px] leading-6 text-[#f0a090]">
-                  {summaryError}{" "}
-                  <button
-                    type="button"
-                    onClick={() => void fetchSummary()}
-                    className="font-medium underline underline-offset-2"
-                  >
-                    Try again
-                  </button>
-                </p>
-              ) : (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-2.5 whitespace-pre-line text-[14px] leading-6 text-body"
-                >
-                  {summaryText}
-                </motion.p>
-              )}
-            </div>
-          </motion.div>
-        )}
+        {ai.state !== "closed" && <AiSummaryPanel key="summary" summary={ai} />}
         {open && (
           <motion.div key="details" {...panelMotion} className="overflow-hidden">
             <DetailsPanel message={m} />

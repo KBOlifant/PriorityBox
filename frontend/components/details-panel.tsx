@@ -94,13 +94,12 @@ export function DetailsPanel({ message: m }: { message: Message }) {
         </div>
       </div>
 
-      {/* A reply needs a sender, which hand-entered items don't have. */}
-      {percent < 100 && m.provider !== "manual" && <FollowUp message={m} />}
+      {percent < 100 && <FollowUp message={m} />}
     </div>
   );
 }
 
-function FollowUp({ message: m }: { message: Message }) {
+export function FollowUp({ message: m }: { message: Message }) {
   const { name: userName } = useProfile();
   const { user } = useAuth();
   const [state, setState] = useState<"idle" | "loading" | "ready">("idle");

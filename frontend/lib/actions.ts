@@ -1,7 +1,10 @@
 import type { Message } from "./types";
 
 export function mailtoHref(m: Message, body = "") {
-  const params = new URLSearchParams({ subject: `Re: ${m.subject}` });
+  // A hand-entered matter isn't a reply to anything.
+  const params = new URLSearchParams({
+    subject: `${m.provider === "manual" ? "Follow-up" : "Re"}: ${m.subject}`,
+  });
   if (body) params.set("body", body);
   // URLSearchParams encodes spaces as "+", which mail clients show literally.
   return `mailto:${m.email}?${params.toString().replace(/\+/g, "%20")}`;

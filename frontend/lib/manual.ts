@@ -20,7 +20,7 @@ export async function loadManual(uid: string) {
 }
 
 /** The AI decides the progress meter. If it can't, the entry is still saved and can be re-rated by editing. */
-async function rate(input: ManualInput) {
+export async function rate(input: ManualInput) {
   try {
     return { ...(await estimateProgress(input)), rated: true };
   } catch {
@@ -76,6 +76,8 @@ export async function editManualEntry(
 export async function deleteManualEntry(uid: string, id: string) {
   actions.setManual(getManual().filter((e) => e.id !== id));
   await safely("delete manual entry", () => store.deleteManualEntry(uid, id));
+  // Its stored AI summary and follow-up draft belong to it alone, so they go too.
+  await safely("delete stored AI responses", () => store.deleteAiResponse(uid, `manual:${id}`));
 }
 
 /**

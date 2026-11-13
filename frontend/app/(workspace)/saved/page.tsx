@@ -16,7 +16,10 @@ export default function SavedPage() {
     const visible = all.filter(
       (s) =>
         (filter === "All" || s.priority === filter) &&
-        (!q || `${s.sender} ${s.subject}`.toLowerCase().includes(q)),
+        (!q ||
+          `${s.sender} ${s.subject} ${s.activity} ${s.progressNote} ${s.remarks}`
+            .toLowerCase()
+            .includes(q)),
     );
     return { all, visible };
   }, [saved, filter, query]);

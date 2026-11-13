@@ -54,6 +54,7 @@ export function toMessage(m: RawMail, c?: Classification, page?: number): Messag
     subject: m.subject,
     preview: preview(m.body, m.subject),
     event: c?.event ? { label: c.event.label, date: formatEventDate(c.event.date) } : undefined,
+    eventIso: c?.event?.date,
     priority: c?.priority ?? "Medium",
     waiting: c?.waiting ?? false,
     archived: false,

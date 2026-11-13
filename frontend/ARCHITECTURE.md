@@ -83,14 +83,30 @@ data (`lib/mock-data.ts`).
 
 ### Saved for later
 
-Emails are saved as **references** in `users/{uid}/savedEmails/{id}`: which
-message it is (provider, account, id), the web link, and the sender and subject
-so the list is readable offline. The body is never stored. High priority emails
-are saved automatically (`SavedSync` in `components/mail-sync.tsx`); any email
-can also be saved with the bookmark button. Removing one keeps a `removed`
-marker so auto-save doesn't bring it back. "Read email" on the Saved screen
-fetches the message from Gmail / Outlook by id (`MailProvider.fetchMessage`),
-so it needs the account to be connected.
+Emails are saved in `users/{uid}/savedEmails/{id}`: a **reference** (provider,
+account, message id, sender and address, subject) plus the same editable fields
+as a manual entry: activity (starts as the subject), event date, progress
+comment, remarks, and the AI-set meter and stage. The email body is never
+stored. High priority emails are saved automatically (`SavedSync` in
+`components/mail-sync.tsx`) and any email can be saved with the bookmark button.
+Removing one keeps a `removed` marker so auto-save doesn't bring it back.
+
+On the Saved screen each item can be edited with the same form as a manual
+entry (`components/manual-editor.tsx`, `editSavedEntry` in `lib/saved.ts`), and
+has every AI feature: summary and follow-up draft work through `savedToMessage`,
+which presents the saved item as a normal message (using the real body when the
+email is loaded or has been opened with "Read email", otherwise the user's
+notes). "Read email" fetches the message by id (`MailProvider.fetchMessage`), so
+it needs the account to be connected.
+
+Gmail links are built by `gmailLink` in `services/mail/parse.ts` (account in
+`authuser`, `#all/<id>`) and always rebuilt at display time, so links stored
+earlier in an old format still work.
+
+**Storing email text later (encrypted):** keep it behind the same two seams,
+`services/firestore/savedEmails.ts` for storage and `savedToMessage` for what the
+AI sees. An encrypted store would hold the body and `savedToMessage` would read
+it from there, with no change to the screens.
 
 ### Manual mode
 

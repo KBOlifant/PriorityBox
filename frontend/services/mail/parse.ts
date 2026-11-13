@@ -3,6 +3,32 @@ import type { RawMail } from "./types";
 
 const MAX_BODY = 3000;
 
+/**
+ * Opens one message in Gmail on the web. The account goes in `authuser` (a path
+ * like /u/me%40gmail.com/ is rejected with a 404) and the "all mail" view is used
+ * so it works whether or not the message is still in the inbox.
+ */
+export function gmailLink(account: string, messageId: string): string {
+  return `https://mail.google.com/mail/?authuser=${encodeURIComponent(account)}#all/${encodeURIComponent(messageId)}`;
+}
+
+/**
+ * The web link for a message, or null. Gmail links are always rebuilt here, because
+ * messages saved or cached earlier carry a link in a format Gmail rejects.
+ */
+export function messageLink(m: {
+  provider?: string;
+  account?: string;
+  /** "gmail:<id>" or "outlook:<id>". */
+  id: string;
+  webLink?: string;
+}): string | null {
+  if (m.provider === "gmail" && m.account) {
+    return gmailLink(m.account, m.id.slice(m.id.indexOf(":") + 1));
+  }
+  return m.webLink?.startsWith("https://") ? m.webLink : null;
+}
+
 export function decodeBase64Url(data: string): string {
   const b64 = data.replace(/-/g, "+").replace(/_/g, "/");
   const bin = atob(b64);
@@ -100,7 +126,7 @@ export function normalizeGmail(msg: GmailMessage, account: string): RawMail {
     subject: header("subject") || "(no subject)",
     body: cleanBody(extractGmailBody(msg)),
     receivedAt: Number(msg.internalDate) || Date.parse(header("date")) || 0,
-    webLink: `https://mail.google.com/mail/u/${encodeURIComponent(account)}/#inbox/${msg.id}`,
+    webLink: gmailLink(account, msg.id),
   };
 }
 
