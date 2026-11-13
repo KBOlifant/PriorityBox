@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { PriorityBadge } from "./priority-badge";
+import { RevealButton } from "./reveal-button";
 import { DetailsPanel } from "./details-panel";
 import { actions } from "@/lib/store";
 import { summarizeEmail } from "@/services/groq";
@@ -37,7 +38,8 @@ export function MessageCard({
   const [summary, setSummary] = useState<SummaryState>("closed");
   const [summaryText, setSummaryText] = useState("");
   const [summaryError, setSummaryError] = useState("");
-  const [summaryHover, setSummaryHover] = useState(false);
+  // Real mail links straight to the message in Gmail / Outlook on the web.
+  const link = m.webLink?.startsWith("https://") ? m.webLink : null;
   const summaryLabel =
     summary === "closed"
       ? "Summarize with AI"
@@ -95,21 +97,26 @@ export function MessageCard({
       className="flex flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-[#323236]"
     >
       <div className="-mt-2 mb-2 -ml-2 flex items-center gap-1">
-        <button
-          type="button"
+        <RevealButton
+          icon={<Download className="size-4 shrink-0" />}
+          label="Download"
           onClick={() => downloadMessage(m)}
-          aria-label="Download message"
-          className="grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.04] hover:text-ink"
-        >
-          <Download className="size-4" />
-        </button>
-        <a
-          href={mailtoHref(m)}
-          aria-label="Reply in email app"
-          className="grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.04] hover:text-ink"
-        >
-          <ExternalLink className="size-4" />
-        </a>
+        />
+        {link ? (
+          <RevealButton
+            icon={<ExternalLink className="size-4 shrink-0" />}
+            label={`Open in ${m.provider === "outlook" ? "Outlook" : "Gmail"}`}
+            href={link}
+            external
+          />
+        ) : (
+          // Sample messages have no real email to open, so this starts a reply instead.
+          <RevealButton
+            icon={<ExternalLink className="size-4 shrink-0" />}
+            label="Reply by email"
+            href={mailtoHref(m)}
+          />
+        )}
       </div>
 
       <div
@@ -162,33 +169,12 @@ export function MessageCard({
       </div>
 
       <div className="mt-5 flex items-center gap-2 border-t border-line pt-4">
-        <motion.button
-          type="button"
+        <RevealButton
+          tone="alert"
+          icon={<Sparkles className="size-3.5 shrink-0" />}
+          label={summaryLabel}
           onClick={toggleSummary}
-          onHoverStart={() => setSummaryHover(true)}
-          onHoverEnd={() => setSummaryHover(false)}
-          onFocus={() => setSummaryHover(true)}
-          onBlur={() => setSummaryHover(false)}
-          whileTap={{ scale: 0.97 }}
-          aria-label={summaryLabel}
-          className="flex h-9 hover:cursor-pointer items-center rounded-lg border border-accent-line bg-accent-soft px-3 text-[13px] font-medium text-accent-text transition-colors hover:border-accent/60"
-        >
-          <Sparkles className="size-3.5 shrink-0 " />
-          <AnimatePresence initial={false}>
-            {summaryHover && (
-              <motion.span
-                key="label"
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: "auto", opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="overflow-hidden whitespace-nowrap "
-              >
-                <span className="block pl-2">{summaryLabel}</span>
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
+        />
 
         <label className="relative">
           <span className="sr-only">Priority for {m.subject}</span>
@@ -215,15 +201,12 @@ export function MessageCard({
               Completed
             </span>
           ) : (
-            <motion.button
-              type="button"
+            <RevealButton
+              tone="accent"
+              icon={<Check className="size-4 shrink-0" />}
+              label="Complete"
               onClick={() => actions.complete(m.id)}
-              whileTap={{ scale: 0.97 }}
-              className="flex h-9 items-center gap-2 rounded-lg bg-accent px-3.5 text-[13px] font-semibold text-accent-text transition-colors hover:bg-accent-hover hover:cursor-pointer"
-            >
-              <Check className="size-4" />
-              Complete
-            </motion.button>
+            />
           )}
         </div>
       </div>
@@ -257,7 +240,7 @@ export function MessageCard({
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="mt-2.5 whitespace-pre-line text-[14px] leading-6 text-[#e9dcd8]"
+                  className="mt-2.5 whitespace-pre-line text-[14px] leading-6 text-body"
                 >
                   {summaryText}
                 </motion.p>

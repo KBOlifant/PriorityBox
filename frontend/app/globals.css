@@ -16,6 +16,12 @@
   --color-accent-text: #cce8f5;
   --color-accent-soft: #041d3a;
   --color-accent-line: #083f7d;
+
+  /* Red marks what is important: the attention flag, its count, AI summaries. */
+  --color-alert: #c21e29;
+  --color-alert-soft: #2a0b0e;
+  --color-alert-line: #6b1a20;
+  --color-alert-text: #ff9097;
 }
 
 :root {
