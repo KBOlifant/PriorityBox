@@ -1,13 +1,14 @@
 import { toMessage } from "./mail-map";
-import { actions, getRules } from "./store";
+import { actions, getCacheHours, getRules } from "./store";
 import * as store from "@/services/firestore";
 import {
+  MailPager,
   openPager,
   providers,
   sourceId,
-  type MailPager,
   type ProviderId,
 } from "@/services/mail";
+import { clearMailCache, loadMailCache, saveMailCache, type CachedMail } from "@/services/mailCache";
 import { classifyMail } from "@/services/mail/classify";
 import type { AccountStatus, Classification, RawMail } from "@/services/mail/types";
 import { safely } from "@/services/safely";
@@ -22,6 +23,8 @@ interface Session {
   /** Fetched pages, oldest page first. */
   pages: RawMail[][];
   analysis: Record<string, Classification>;
+  /** False while only showing a saved copy; only live sessions refresh the cache. */
+  live: boolean;
 }
 
 let session: Session | null = null;
@@ -64,6 +67,7 @@ async function run(uid: string) {
   }
   if (!saved.length) {
     session = null;
+    clearMailCache(uid);
     actions.setSource(null); // nothing connected: sample data
     actions.setSync({
       status: "idle",
@@ -75,13 +79,55 @@ async function run(uid: string) {
     return;
   }
 
+  // Show the copy kept on this device straight away, so a refresh doesn't empty the inbox.
+  const cached = loadMailCache(uid, getCacheHours());
+  if (cached) showCached(uid, cached, saved.map((a) => ({ ...a, status: "ok" as const })));
+
   const { pager, statuses } = await openPager(saved, PAGE_SIZE);
+
+  // No account could be reached (login expired): keep showing the saved copy.
+  if (cached && !statuses.some((a) => a.status === "ok")) {
+    actions.setSync({ accounts: statuses, status: "ready", cachedAt: cached.fetchedAt });
+    return;
+  }
   await startSession(uid, pager, statuses);
+}
+
+function showCached(uid: string, c: CachedMail, statuses: AccountStatus[]) {
+  // An empty pager means "no more mail", so only the saved pages can be paged through.
+  session = {
+    uid,
+    pager: new MailPager([], PAGE_SIZE),
+    statuses,
+    pages: c.pages,
+    analysis: c.analysis,
+    live: false,
+  };
+  render(session);
+  actions.setSync({
+    accounts: statuses,
+    page: 1,
+    loadedPages: c.pages.length,
+    hasMore: false,
+    status: "loading",
+    cachedAt: c.fetchedAt,
+    error: undefined,
+  });
+}
+
+/** Keeps the on-device copy current. Only live data is saved, never a copy of a copy. */
+function persist(s: Session) {
+  if (!s.live || !s.pages.length) return;
+  saveMailCache(
+    s.uid,
+    { fetchedAt: Date.now(), pages: s.pages, analysis: s.analysis },
+    getCacheHours(),
+  );
 }
 
 /** Starts paging through `pager`. Exported so the paging flow can be exercised with fake sources. */
 export async function startSession(uid: string, pager: MailPager, statuses: AccountStatus[]) {
-  session = { uid, pager, statuses, pages: [], analysis: {} };
+  session = { uid, pager, statuses, pages: [], analysis: {}, live: true };
   actions.setSync({ accounts: statuses, page: 1, loadedPages: 0, hasMore: true });
   await fetchNextPage(session);
 }
@@ -110,7 +156,9 @@ async function fetchNextPage(s: Session) {
 
     if (mail.length) s.pages.push(mail);
     render(s);
+    persist(s);
     actions.setSync({
+      cachedAt: undefined,
       accounts: s.statuses,
       page: Math.max(1, s.pages.length),
       loadedPages: s.pages.length,
@@ -138,6 +186,7 @@ async function analyse(s: Session, mail: RawMail[]) {
   try {
     Object.assign(s.analysis, await classifyMail(s.uid, mail, getRules()));
     if (session === s) render(s);
+    persist(s);
   } catch (err) {
     error = err instanceof Error ? err.message : "Couldn’t analyse your mail.";
   }
@@ -180,6 +229,7 @@ export async function connectProvider(uid: string, id: ProviderId) {
 
 export async function disconnectProvider(uid: string, id: ProviderId, email: string) {
   await providers[id].disconnect(email).catch(() => undefined);
+  clearMailCache(uid); // it may hold this account's mail
   await safely("remove mail account", () => store.removeMailAccount(uid, id));
   await syncMail(uid);
 }

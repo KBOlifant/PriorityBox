@@ -70,6 +70,11 @@ data (`lib/mock-data.ts`).
 
 - Tokens live in `sessionStorage` (Google ~1h, Microsoft via MSAL). When one
   can't be renewed silently the account is flagged "needs reconnect".
+- A copy of the loaded inbox is kept in `localStorage` (`services/mailCache.ts`)
+  so emails survive a refresh when the login can't be renewed silently. The
+  user chooses how long it lives (gear menu: don't keep / 1h / 6h / 24h / 7 days,
+  default 24h). It is never uploaded, and is cleared on expiry, sign-out,
+  disconnecting an account, or "Clear saved emails now".
 - Message text is never stored in Firestore. Only the AI analysis and the
   connected account addresses are.
 - Email text is sent to Groq for classification, summaries and drafts.

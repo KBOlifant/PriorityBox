@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
 import { actions, useStore } from "@/lib/store";
+import { timeAgo } from "@/services/mailCache";
 
 /** Loads the connected inboxes once the user is signed in. Renders nothing. */
 export function MailSync() {
@@ -24,11 +25,17 @@ export function MailBanner() {
   const { sync } = useStore();
   const stale = sync.accounts.filter((a) => a.status === "needs-reconnect");
   const analysing = sync.status === "classifying";
-  const message = stale.length
+  const problem = stale.length
     ? stale.map((a) => a.error).join(" ")
     : sync.status === "error" || sync.error
       ? sync.error
       : null;
+  // Until live mail loads we show the copy kept on this device; say so once it is clear that's all there is.
+  const savedCopy =
+    sync.cachedAt && sync.status !== "loading"
+      ? `Showing the emails saved on this device from ${timeAgo(sync.cachedAt)}.`
+      : null;
+  const message = [problem, savedCopy].filter(Boolean).join(" ") || null;
   const show = Boolean(message) || analysing;
 
   return (

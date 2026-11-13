@@ -13,6 +13,8 @@ export interface SyncState {
   loadedPages: number;
   /** True while the inboxes have more mail to fetch. */
   hasMore: boolean;
+  /** Set while showing a saved copy of the inbox (epoch ms it was fetched), until live mail loads. */
+  cachedAt?: number;
 }
 
 /** A search result chosen by the AI: only these messages are shown. */
@@ -39,9 +41,12 @@ export interface State {
   aiFilter: AiFilter | null;
   /** The user's own definitions of "urgent", applied to future classification. */
   rules: string[];
+  /** How many hours emails are kept on this device so they survive a refresh. 0 = don't keep. */
+  cacheHours: number;
 }
 
 const MAX_RULES = 5;
+export const DEFAULT_CACHE_HOURS = 24;
 const STORAGE_KEY = "priority:v1";
 const listeners = new Set<() => void>();
 
@@ -59,6 +64,7 @@ let state: State = {
   sync: { status: "idle", accounts: [], page: 1, loadedPages: 0, hasMore: false },
   aiFilter: null,
   rules: [],
+  cacheHours: DEFAULT_CACHE_HOURS,
 };
 const serverState = state;
 
@@ -69,7 +75,12 @@ const applyOverrides = (o: Overrides): Message[] =>
 function hydrate() {
   if (hydrated || typeof window === "undefined") return;
   hydrated = true;
-  let saved: { overrides?: Overrides; onboarded?: boolean; rules?: string[] } = {};
+  let saved: {
+    overrides?: Overrides;
+    onboarded?: boolean;
+    rules?: string[];
+    cacheHours?: number;
+  } = {};
   try {
     saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
   } catch {
@@ -83,6 +94,10 @@ function hydrate() {
     onboarded,
     onboarding: onboarded ? null : 1,
     rules: Array.isArray(saved.rules) ? saved.rules.slice(0, MAX_RULES) : [],
+    cacheHours:
+      typeof saved.cacheHours === "number" && saved.cacheHours >= 0
+        ? saved.cacheHours
+        : DEFAULT_CACHE_HOURS,
   };
 }
 
@@ -90,7 +105,12 @@ function persist() {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ overrides, onboarded: state.onboarded, rules: state.rules }),
+      JSON.stringify({
+        overrides,
+        onboarded: state.onboarded,
+        rules: state.rules,
+        cacheHours: state.cacheHours,
+      }),
     );
   } catch {
     /* storage unavailable — edits simply won't persist */
@@ -136,6 +156,7 @@ export const actions = {
     update({ messages: applyOverrides(overrides) }, true);
   },
   setAiFilter: (aiFilter: AiFilter | null) => update({ aiFilter }),
+  setCacheHours: (cacheHours: number) => update({ cacheHours }, true),
   addRule(rule: string) {
     if (state.rules.includes(rule)) return;
     update({ rules: [rule, ...state.rules].slice(0, MAX_RULES) }, true);
@@ -172,4 +193,10 @@ export const actions = {
 export function getRules(): string[] {
   hydrate();
   return state.rules;
+}
+
+/** Current cache lifetime in hours, for non-React code. */
+export function getCacheHours(): number {
+  hydrate();
+  return state.cacheHours;
 }

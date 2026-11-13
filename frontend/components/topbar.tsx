@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Bell, Plus, RefreshCw, Search } from "lucide-react";
 import { AiBar } from "./ai-bar";
+import { SettingsMenu } from "./settings-menu";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
 import { actions, useStore } from "@/lib/store";
@@ -45,6 +46,7 @@ export function Topbar() {
             />
           </button>
         )}
+        <SettingsMenu />
         <button
           type="button"
           aria-label="Notifications"
