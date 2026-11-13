@@ -1,4 +1,5 @@
-const { app, BrowserWindow, shell, dialog } = require("electron");
+const { app, BrowserWindow, shell, dialog, ipcMain } = require("electron");
+const { googleAuth } = require("./google-auth");
 const { autoUpdater } = require("electron-updater");
 const http = require("http");
 const fs = require("fs");
@@ -67,7 +68,7 @@ function createWindow(url) {
     minHeight: 600,
     autoHideMenuBar: true,
     icon: path.join(__dirname, "..", "assets", "PriorityBoxLogo.png"),
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+    webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
 
   // Keep the app origin in-window; send everything else to the browser,
@@ -110,6 +111,8 @@ function setupAutoUpdates() {
   autoUpdater.checkForUpdates().catch(() => {});
   setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000);
 }
+
+ipcMain.handle("google-auth", (_e, opts) => googleAuth(opts));
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

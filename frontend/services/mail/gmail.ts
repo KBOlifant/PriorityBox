@@ -92,7 +92,55 @@ function clearToken() {
   }
 }
 
+declare global {
+  interface Window {
+    desktop?: {
+      googleAuth(opts: {
+        clientId?: string;
+        clientSecret?: string;
+        scope: string;
+        prompt?: string;
+        loginHint?: string;
+      }): Promise<{ access_token: string; expires_in: number }>;
+    };
+  }
+}
+
+const DESKTOP_CLIENT_ID = process.env.NEXT_PUBLIC_DESKTOP_APP_GOOGLE_CLIENT_ID;
+const DESKTOP_CLIENT_SECRET =
+  process.env.NEXT_PUBLIC_DESKTOP_APP_GOOGLE_CLIENT_SECRET;
+
+/** Desktop (Electron) flow: system browser + loopback + PKCE via the main process. */
+async function requestDesktopToken(
+  prompt: string,
+  hint?: string,
+): Promise<string> {
+  try {
+    const r = await window.desktop!.googleAuth({
+      clientId: DESKTOP_CLIENT_ID,
+      clientSecret: DESKTOP_CLIENT_SECRET,
+      scope: SCOPE,
+      prompt,
+      loginHint: hint,
+    });
+    saveToken(r.access_token, Number(r.expires_in) || 3600);
+    return r.access_token;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    throw new MailError(
+      msg.includes("access_denied")
+        ? "Gmail access was declined."
+        : msg.includes("timeout")
+          ? "Sign-in was cancelled."
+          : "Google sign-in failed. Try again.",
+    );
+  }
+}
+
 function requestToken(prompt: string, hint?: string): Promise<string> {
+  if (typeof window !== "undefined" && window.desktop) {
+    return requestDesktopToken(prompt, hint);
+  }
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   if (!clientId) {
     return Promise.reject(new MailError("Google sign-in isn’t configured yet."));
@@ -163,7 +211,12 @@ export const gmail: MailProvider = {
   id: "gmail",
   label: "Google Gmail",
 
-  isConfigured: () => Boolean(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID),
+  isConfigured: () =>
+    Boolean(
+      typeof window !== "undefined" && window.desktop
+        ? DESKTOP_CLIENT_ID
+        : process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    ),
 
   async connect(): Promise<ConnectedAccount> {
     const token = await requestToken("select_account");
