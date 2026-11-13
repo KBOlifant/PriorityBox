@@ -13,6 +13,7 @@ async function googleAuth({ clientId, clientSecret, scope, prompt, loginHint }) 
   const state = b64url(crypto.randomBytes(16));
 
   const { code, redirectUri } = await new Promise((resolve, reject) => {
+    let redirect = "";
     const server = http.createServer((req, res) => {
       const url = new URL(req.url, "http://127.0.0.1");
       if (url.pathname !== "/") {
@@ -30,7 +31,7 @@ async function googleAuth({ clientId, clientSecret, scope, prompt, loginHint }) 
       );
       clearTimeout(timer);
       server.close();
-      if (ok) resolve({ code: gotCode, redirectUri: `http://127.0.0.1:${server.address().port}` });
+      if (ok) resolve({ code: gotCode, redirectUri: redirect });
       else reject(new Error(err === "access_denied" ? "access_denied" : "failed"));
     });
     const timer = setTimeout(() => {
@@ -39,7 +40,7 @@ async function googleAuth({ clientId, clientSecret, scope, prompt, loginHint }) 
     }, 5 * 60 * 1000);
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => {
-      const redirect = `http://127.0.0.1:${server.address().port}`;
+      redirect = `http://127.0.0.1:${server.address().port}`;
       const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: redirect,
