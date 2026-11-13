@@ -170,7 +170,7 @@ export function AiBar() {
               <X className="size-3.5" />
             </button>
 
-            {error && <p className="pr-6 text-[#f0a090]">{error}</p>}
+            {error && <p className="pr-6 text-danger">{error}</p>}
 
             {outcome && (
               <div className="pr-6">

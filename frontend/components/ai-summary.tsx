@@ -111,7 +111,7 @@ export function AiSummaryPanel({ summary }: { summary: AiSummary }) {
             <div className="h-3 w-3/5 animate-pulse rounded bg-accent-line/70" />
           </div>
         ) : summary.error ? (
-          <p role="alert" className="mt-2.5 text-[13.5px] leading-6 text-[#f0a090]">
+          <p role="alert" className="mt-2.5 text-[13.5px] leading-6 text-danger">
             {summary.error}{" "}
             <button
               type="button"

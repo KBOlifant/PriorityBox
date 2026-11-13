@@ -22,9 +22,19 @@ export const metadata: Metadata = {
   description: "A calmer inbox that surfaces the messages that move work forward.",
 };
 
+const THEME_SCRIPT = `try{var t=localStorage.getItem("priority-theme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";document.documentElement.dataset.theme=t}catch(e){}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${neuPrompter.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${neuPrompter.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        {/* Runs before paint so the saved (or system) theme never flashes. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-full bg-canvas font-sans text-ink">
         <Providers>{children}</Providers>
       </body>

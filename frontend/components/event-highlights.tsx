@@ -20,7 +20,7 @@ export function EventHighlights({ messages }: { messages: Message[] }) {
           whileHover={{ y: -2 }}
           className={`rounded-2xl border p-5 ${
             m.priority === "High"
-              ? "border-accent-line bg-[#0a1626]"
+              ? "border-accent-line bg-accent-faint"
               : "border-line bg-surface"
           }`}
         >

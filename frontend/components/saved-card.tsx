@@ -135,7 +135,7 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
               <span className="tabular-nums text-muted">{item.percent}%</span>
             </div>
             <div
-              className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#2b2b2f]"
+              className="mt-2 h-1.5 overflow-hidden rounded-full bg-track"
               role="progressbar"
               aria-valuenow={item.percent}
               aria-valuemin={0}
@@ -207,7 +207,7 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
             onChange={(e) =>
               user && void updateSavedFields(user.uid, item.id, { priority: e.target.value as Priority })
             }
-            className="h-9 cursor-pointer appearance-none rounded-lg border border-line bg-surface-2 pl-3.5 pr-9 text-[13px] text-body outline-none transition-colors hover:border-[#38383d] focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="h-9 cursor-pointer appearance-none rounded-lg border border-line bg-surface-2 pl-3.5 pr-9 text-[13px] text-body outline-none transition-colors hover:border-line-strong focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             {(["High", "Medium", "Low"] as const).map((p) => (
               <option key={p} value={p}>
@@ -228,7 +228,7 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-[12.5px] leading-5 text-[#f0a090]">
+        <p role="alert" className="mt-3 text-[12.5px] leading-5 text-danger">
           {error}
         </p>
       )}
@@ -238,7 +238,7 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
       </AnimatePresence>
 
       {followUp && (
-        <div className="mt-4 overflow-hidden rounded-xl border border-line bg-[#171719]">
+        <div className="mt-4 overflow-hidden rounded-xl border border-line bg-raised">
           <FollowUp message={message} />
         </div>
       )}

@@ -51,7 +51,7 @@ export function EmailModal({
         exit={{ opacity: 0, scale: 0.97, y: 8 }}
         transition={{ type: "spring", stiffness: 380, damping: 34 }}
         onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-[#171719] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] [overflow-wrap:anywhere]"
+        className="flex max-h-[85vh] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-line bg-raised shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] [overflow-wrap:anywhere]"
       >
         <header className="flex items-start gap-4 border-b border-line px-6 py-5">
           <span
@@ -75,7 +75,7 @@ export function EmailModal({
             autoFocus
             onClick={onClose}
             aria-label="Close"
-            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-white/[0.05] hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted outline-none transition-colors hover:bg-hover hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             <X className="size-4" />
           </button>

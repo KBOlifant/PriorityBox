@@ -19,7 +19,7 @@ export function Pagination() {
   const from = (sync.page - 1) * PAGE_SIZE + 1;
 
   const button =
-    "flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 text-[13px] font-medium text-body transition-colors hover:border-[#38383d] hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-body";
+    "flex h-9 items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 text-[13px] font-medium text-body transition-colors hover:border-line-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-body";
 
   return (
     <nav

@@ -49,7 +49,7 @@ export function Sidebar() {
     <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-line bg-sidebar md:flex">
       <div className="flex h-[72px] items-center gap-3 px-6">
         <LogoMark />
-        <span className="text-[15px] font-semibold text-zinc-300">
+        <span className="text-[15px] font-semibold text-body">
           PriorityBox
         </span>
       </div>
@@ -69,7 +69,7 @@ export function Sidebar() {
                   className={`relative flex h-10 items-center gap-3 rounded-xl px-3 text-[14px] transition-colors ${
                     active
                       ? "text-accent-text"
-                      : "text-body hover:bg-white/[0.03] hover:text-ink"
+                      : "text-body hover:bg-hover hover:text-ink"
                   }`}
                 >
                   {active && (
@@ -115,7 +115,7 @@ export function Sidebar() {
           onClick={actions.openConnect}
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.98 }}
-          className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition-colors hover:border-[#38383d]"
+          className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface p-3 text-left transition-colors hover:border-line-strong"
         >
           <span className="grid size-9 place-items-center rounded-lg bg-surface-2 text-body">
             <Plus className="size-4" />
@@ -145,7 +145,7 @@ export function Sidebar() {
             onClick={() => void signOut()}
             aria-label="Sign out"
             title="Sign out"
-            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.05] hover:text-ink"
+            className="grid size-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-hover hover:text-ink"
           >
             <LogOut className="size-4" />
           </button>

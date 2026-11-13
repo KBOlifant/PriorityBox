@@ -30,7 +30,7 @@ export function DetailsPanel({ message: m }: { message: Message }) {
   const { stage, percent } = m.progress;
 
   return (
-    <div className="mt-4 overflow-hidden rounded-xl border border-line bg-[#171719]">
+    <div className="mt-4 overflow-hidden rounded-xl border border-line bg-raised">
       <div className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <div>
           <p className={eyebrow}>Progress</p>
@@ -41,7 +41,7 @@ export function DetailsPanel({ message: m }: { message: Message }) {
             </span> */}
           </div>
           <div
-            className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#2b2b2f]"
+            className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-track"
             role="progressbar"
             aria-valuenow={percent}
             aria-valuemin={0}
@@ -214,7 +214,7 @@ export function FollowUp({ message: m }: { message: Message }) {
       </div>
 
       {error && (
-        <p role="alert" className="mt-3 text-[12.5px] text-[#f0a090]">
+        <p role="alert" className="mt-3 text-[12.5px] text-danger">
           {error}
         </p>
       )}

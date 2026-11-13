@@ -80,7 +80,7 @@ export function MessageCard({
         delay: Math.min(index, 6) * 0.04,
       }}
       whileHover={{ scale: 1.02 }}
-      className="flex flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-[#323236]"
+      className="flex flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-line-strong"
     >
       <div className="-mt-2 mb-2 -ml-2 flex items-center gap-1">
         {manual ? (
@@ -229,7 +229,7 @@ export function MessageCard({
             onChange={(e) =>
               actions.setPriority(m.id, e.target.value as Priority)
             }
-            className="h-9 cursor-pointer appearance-none rounded-lg border border-line bg-surface-2 pl-3.5 pr-9 text-[13px] text-body outline-none transition-colors hover:border-[#38383d] focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="h-9 cursor-pointer appearance-none rounded-lg border border-line bg-surface-2 pl-3.5 pr-9 text-[13px] text-body outline-none transition-colors hover:border-line-strong focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             {(["High", "Medium", "Low"] as const).map((p) => (
               <option key={p} value={p}>

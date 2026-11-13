@@ -58,7 +58,7 @@ export function SettingsMenu() {
         aria-label="Settings"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="grid size-10 place-items-center rounded-xl text-body transition-colors hover:bg-white/[0.04] hover:text-ink"
+        className="grid size-10 place-items-center rounded-xl text-body transition-colors hover:bg-hover hover:text-ink"
       >
         <Settings className="size-[18px]" strokeWidth={1.7} />
       </button>

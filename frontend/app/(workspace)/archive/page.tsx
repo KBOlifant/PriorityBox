@@ -33,7 +33,7 @@ export default function ArchivePage() {
             className={`flex h-9 shrink-0 items-center gap-2 rounded-lg border px-3.5 text-[13px] font-medium transition-colors ${
               today
                 ? "border-accent-line bg-accent-soft text-accent-text"
-                : "border-line bg-surface text-body hover:border-[#38383d]"
+                : "border-line bg-surface text-body hover:border-line-strong"
             }`}
           >
             <CalendarCheck className="size-3.5" />

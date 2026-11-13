@@ -44,7 +44,7 @@ export function Onboarding() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 8 }}
             transition={{ type: "spring", stiffness: 380, damping: 34 }}
-            className="w-full max-w-[520px] overflow-hidden rounded-[28px] border border-line bg-[#171719] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]"
+            className="w-full max-w-[520px] overflow-hidden rounded-[28px] border border-line bg-raised shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]"
           >
             <div className="flex items-center justify-between border-b border-line px-7 py-4">
               <div className="flex items-center gap-3">
@@ -270,7 +270,7 @@ function ProviderRow({
           ))}
       </div>
       {error && (
-        <p role="alert" className="mt-2 px-1 text-[12px] text-[#f0a090]">
+        <p role="alert" className="mt-2 px-1 text-[12px] text-danger">
           {error}
         </p>
       )}

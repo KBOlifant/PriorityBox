@@ -5,6 +5,7 @@ import { Bell, Plus, RefreshCw, Search } from "lucide-react";
 import { AiBar } from "./ai-bar";
 import { ModeSwitch } from "./mode-switch";
 import { SettingsMenu } from "./settings-menu";
+import { ThemeToggle } from "./theme-toggle";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
 import { actions, useStore } from "@/lib/store";
@@ -39,7 +40,7 @@ export function Topbar() {
             title="Refresh mail"
             disabled={syncing}
             onClick={() => void syncMail(user.uid)}
-            className="grid size-10 place-items-center rounded-xl text-body transition-colors hover:bg-white/[0.04] hover:text-ink disabled:opacity-60"
+            className="grid size-10 place-items-center rounded-xl text-body transition-colors hover:bg-hover hover:text-ink disabled:opacity-60"
           >
             <RefreshCw
               className={`size-[18px] ${syncing ? "animate-spin" : ""}`}
@@ -48,11 +49,12 @@ export function Topbar() {
           </button>
         )}
         <ModeSwitch />
+        <ThemeToggle />
         <SettingsMenu />
         <button
           type="button"
           aria-label="Notifications"
-          className="relative grid size-10 place-items-center rounded-xl text-body transition-colors hover:bg-white/[0.04] hover:text-ink"
+          className="relative grid size-10 place-items-center rounded-xl text-body transition-colors hover:bg-hover hover:text-ink"
         >
           <Bell className="size-[18px]" strokeWidth={1.7} />
           <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-[#C21E29]" />
@@ -72,7 +74,7 @@ export function Topbar() {
             type="button"
             onClick={actions.openConnect}
             whileTap={{ scale: 0.97 }}
-            className="flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-[13px] font-medium transition-colors hover:border-[#38383d]"
+            className="flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-[13px] font-medium transition-colors hover:border-line-strong"
           >
             <Plus className="size-4" />
             Add inbox

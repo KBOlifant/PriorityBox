@@ -144,7 +144,7 @@ function EditorDialog({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: 8 }}
         transition={{ type: "spring", stiffness: 380, damping: 34 }}
-        className="w-full max-w-[560px] rounded-2xl border border-line bg-[#171719] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]"
+        className="w-full max-w-[560px] rounded-2xl border border-line bg-raised shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]"
       >
         <header className="flex items-center justify-between border-b border-line px-6 py-4">
           <div className="min-w-0">
@@ -162,7 +162,7 @@ function EditorDialog({
             onClick={close}
             disabled={busy}
             aria-label="Close"
-            className="grid size-8 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.05] hover:text-ink disabled:opacity-50"
+            className="grid size-8 place-items-center rounded-lg text-muted transition-colors hover:bg-hover hover:text-ink disabled:opacity-50"
           >
             <X className="size-4" />
           </button>
@@ -246,12 +246,12 @@ function EditorDialog({
           </div>
 
           {error && (
-            <p role="alert" className="text-[13px] text-[#f0a090]">
+            <p role="alert" className="text-[13px] text-danger">
               {error}
             </p>
           )}
           {notice && (
-            <p role="status" className="text-[13px] text-[#e5b45f]">
+            <p role="status" className="text-[13px] text-warn">
               {notice}
             </p>
           )}

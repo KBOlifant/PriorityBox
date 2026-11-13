@@ -5,9 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 
 const TONES = {
   /** Quiet icon button. */
-  neutral: "text-muted hover:bg-white/[0.04] hover:text-ink",
+  neutral: "text-muted hover:bg-hover hover:text-ink",
   /** Primary action. */
-  accent: "bg-accent text-accent-text hover:bg-accent-hover",
+  accent: "bg-accent text-white hover:bg-accent-hover",
   /** Soft blue outlined button, for secondary actions. */
   soft: "border border-accent-line bg-accent-soft text-accent-text hover:border-accent/60",
   /** Marks something important. */

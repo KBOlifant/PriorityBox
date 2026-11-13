@@ -89,7 +89,7 @@ export default function LoginPage() {
         initial={{ opacity: 0, y: 18, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="relative w-full max-w-[440px] rounded-[28px] border border-line bg-[#171719] p-8 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] sm:p-10"
+        className="relative w-full max-w-[440px] rounded-[28px] border border-line bg-raised p-8 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] sm:p-10"
       >
         <div className="flex items-center gap-3">
           <LogoMark size={34} />
@@ -245,8 +245,8 @@ export default function LoginPage() {
                 <p
                   className={`flex items-start gap-2 rounded-xl border px-3.5 py-3 text-[13px] leading-5 ${
                     error
-                      ? "border-[#5a2a25] bg-[#2d1613] text-[#f0a090]"
-                      : "border-[#2f4a3c] bg-[#14211b] text-[#9fd0b4]"
+                      ? "border-[#5a2a25] bg-[#2d1613] text-danger"
+                      : "border-ok-line bg-ok-soft text-ok"
                   }`}
                 >
                   {error ? (
@@ -284,7 +284,7 @@ export default function LoginPage() {
           onClick={() => void run(signInWithGoogle)}
           whileHover={{ y: -1 }}
           whileTap={{ scale: 0.98 }}
-          className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface text-[14px] font-medium transition-colors hover:border-[#38383d] disabled:opacity-70"
+          className="flex h-12 w-full items-center justify-center gap-3 rounded-xl border border-line bg-surface text-[14px] font-medium transition-colors hover:border-line-strong disabled:opacity-70"
         >
           <GoogleMark />
           Continue with Google
