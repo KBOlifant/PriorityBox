@@ -26,4 +26,10 @@ export interface Message {
   progress: { stage: string; percent: number };
   tags: string[];
   remarks: string;
+  /** Full plain-text body for real mail. Sample messages only have `preview`. */
+  body?: string;
+  /** Set for real mail, absent for sample data. */
+  provider?: "gmail" | "outlook";
+  /** Opens the message in the provider's web mail. */
+  webLink?: string;
 }

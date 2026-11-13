@@ -1,6 +1,13 @@
 import { useSyncExternalStore } from "react";
 import { baseMessages } from "./mock-data";
 import type { Filter, Message, Priority } from "./types";
+import type { AccountStatus } from "@/services/mail/types";
+
+export interface SyncState {
+  status: "idle" | "loading" | "classifying" | "ready" | "error";
+  error?: string;
+  accounts: AccountStatus[];
+}
 
 type Overrides = Record<
   string,
@@ -14,6 +21,9 @@ export interface State {
   filter: Filter;
   onboarding: OnboardingStep;
   onboarded: boolean;
+  /** True while showing the built-in sample messages (no account connected). */
+  usingSample: boolean;
+  sync: SyncState;
 }
 
 const STORAGE_KEY = "priority:v1";
@@ -21,17 +31,21 @@ const listeners = new Set<() => void>();
 
 let overrides: Overrides = {};
 let hydrated = false;
+/** Messages before the user's own edits: sample data, or the connected inboxes. */
+let source: Message[] = baseMessages;
 let state: State = {
   messages: baseMessages,
   query: "",
   filter: "All",
   onboarding: null,
   onboarded: true,
+  usingSample: true,
+  sync: { status: "idle", accounts: [] },
 };
 const serverState = state;
 
 const applyOverrides = (o: Overrides): Message[] =>
-  baseMessages.map((m) => ({ ...m, ...o[m.id] }));
+  source.map((m) => ({ ...m, ...o[m.id] }));
 
 /** Reads saved edits once on the client. Server and first render use `serverState`. */
 function hydrate() {
@@ -90,6 +104,12 @@ export function useStore(): State {
 }
 
 export const actions = {
+  /** Swap the message source: real mail, or null to go back to the sample data. */
+  setSource(list: Message[] | null) {
+    source = list ?? baseMessages;
+    update({ messages: applyOverrides(overrides), usingSample: list === null });
+  },
+  setSync: (patch: Partial<SyncState>) => update({ sync: { ...state.sync, ...patch } }),
   setQuery: (query: string) => update({ query }),
   setFilter: (filter: Filter) => update({ filter }),
   setPriority(id: string, priority: Priority) {

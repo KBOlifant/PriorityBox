@@ -1,11 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Bell, Plus, Search } from "lucide-react";
+import { Bell, Plus, RefreshCw, Search } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { syncMail } from "@/lib/mail";
 import { actions, useStore } from "@/lib/store";
 
 export function Topbar() {
-  const { query } = useStore();
+  const { query, usingSample, sync } = useStore();
+  const { user } = useAuth();
+  const syncing = sync.status === "loading" || sync.status === "classifying";
 
   return (
     <header className="sticky top-0 z-20 flex h-[72px] shrink-0 items-center justify-between gap-4 border-b border-line bg-canvas/85 px-9 backdrop-blur-md">
@@ -22,6 +26,21 @@ export function Topbar() {
       </label>
 
       <div className="flex items-center gap-3">
+        {!usingSample && user && (
+          <button
+            type="button"
+            aria-label="Refresh mail"
+            title="Refresh mail"
+            disabled={syncing}
+            onClick={() => void syncMail(user.uid)}
+            className="grid size-10 place-items-center rounded-xl text-body transition-colors hover:bg-white/[0.04] hover:text-ink disabled:opacity-60"
+          >
+            <RefreshCw
+              className={`size-[18px] ${syncing ? "animate-spin" : ""}`}
+              strokeWidth={1.7}
+            />
+          </button>
+        )}
         <button
           type="button"
           aria-label="Notifications"

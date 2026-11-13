@@ -1,4 +1,5 @@
 export * from "./users";
 export * from "./messageState";
-export * from "./aiResponses";
+export * from "./mailAccounts";
+export * from "./classifications";
 export type { Stored, Timestamps } from "./crud";

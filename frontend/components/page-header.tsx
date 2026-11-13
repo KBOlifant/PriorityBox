@@ -1,5 +1,15 @@
+"use client";
+
 import { TODAY_LABEL } from "@/lib/mock-data";
+import { useStore } from "@/lib/store";
 import { PriorityFilter } from "./priority-filter";
+
+const todayLabel = () =>
+  new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
 
 export function PageHeader({
   highlight,
@@ -10,11 +20,13 @@ export function PageHeader({
   title: string;
   subtitle: string;
 }) {
+  const { usingSample } = useStore();
+
   return (
     <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-5">
       <div>
         <p className="flex items-center gap-2 text-[12.5px] text-muted">
-          {TODAY_LABEL}
+          {usingSample ? TODAY_LABEL : todayLabel()}
           <span className="size-[3px] rounded-full bg-muted" />
           <span className="text-accent-text">{highlight}</span>
         </p>

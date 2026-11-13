@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Link2, Mail } from "lucide-react";
+import { ArrowRight, Link2, Loader2, Mail } from "lucide-react";
 import { LogoMark } from "./logo";
+import { useAuth } from "@/lib/auth";
+import { connectProvider, disconnectProvider } from "@/lib/mail";
 import { actions, useStore } from "@/lib/store";
+import { providers, type ProviderId } from "@/services/mail";
 
 const eyebrow =
   "text-[11px] font-semibold uppercase tracking-[0.2em] text-accent-text";
@@ -134,20 +137,8 @@ function StepOne() {
 }
 
 function StepTwo({ onboarded }: { onboarded: boolean }) {
-  const providers = [
-    {
-      letter: "G",
-      name: "Connect Google Workspace",
-      hint: "Available when live integrations are enabled",
-      tile: "bg-[#a8aab0] text-[#3d4f8a]",
-    },
-    {
-      letter: "M",
-      name: "Connect Microsoft Outlook",
-      hint: "Microsoft 365 and Outlook.com",
-      tile: "bg-[#2a4a85] text-white",
-    },
-  ];
+  const { sync } = useStore();
+  const hasAccount = sync.accounts.length > 0;
 
   return (
     <>
@@ -156,36 +147,28 @@ function StepTwo({ onboarded }: { onboarded: boolean }) {
         Bring your inbox, or explore first.
       </h2>
       <p className="mt-5 text-[14.5px] leading-7 text-body">
-        Connections are not enabled yet. You can still explore every workflow
-        with realistic sample messages.
+        Connect Gmail or Outlook to see your real inbox, or explore every
+        workflow with realistic sample messages.
       </p>
       <ul className="mt-6 space-y-3">
-        {providers.map((p) => (
-          <li key={p.name}>
-            <button
-              type="button"
-              disabled
-              className="flex w-full items-center gap-4 rounded-xl border border-line bg-surface p-4 text-left opacity-70"
-            >
-              <span
-                className={`grid size-10 place-items-center rounded-lg text-[14px] font-bold ${p.tile}`}
-              >
-                {p.letter}
-              </span>
-              <span className="flex-1">
-                <span className="block text-[14px] font-medium text-body">
-                  {p.name}
-                </span>
-                <span className="block text-[11.5px] text-muted">{p.hint}</span>
-              </span>
-              <Link2 className="size-4 text-muted" />
-            </button>
-          </li>
-        ))}
+        <ProviderRow
+          id="gmail"
+          letter="G"
+          name="Google Gmail"
+          hint="Gmail and Google Workspace"
+          tile="bg-[#a8aab0] text-[#3d4f8a]"
+        />
+        <ProviderRow
+          id="outlook"
+          letter="M"
+          name="Microsoft Outlook"
+          hint="Microsoft 365 and Outlook.com"
+          tile="bg-[#2a4a85] text-white"
+        />
       </ul>
       <div className="mt-6">
         <PrimaryButton onClick={actions.finishOnboarding}>
-          Explore with sample data
+          {hasAccount ? "Done" : "Explore with sample data"}
         </PrimaryButton>
       </div>
       <button
@@ -196,5 +179,101 @@ function StepTwo({ onboarded }: { onboarded: boolean }) {
         {onboarded ? "Cancel" : "Back"}
       </button>
     </>
+  );
+}
+
+function ProviderRow({
+  id,
+  letter,
+  name,
+  hint,
+  tile,
+}: {
+  id: ProviderId;
+  letter: string;
+  name: string;
+  hint: string;
+  tile: string;
+}) {
+  const { user } = useAuth();
+  const { sync } = useStore();
+  const account = sync.accounts.find((a) => a.provider === id);
+  const configured = providers[id].isConfigured();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function run(action: () => Promise<void>) {
+    setBusy(true);
+    setError("");
+    try {
+      await action();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // connectProvider must start synchronously from the click so pop-ups aren't blocked.
+  const connect = () => user && void run(() => connectProvider(user.uid, id));
+  const disconnect = () =>
+    user && account && void run(() => disconnectProvider(user.uid, id, account.email));
+
+  const needsReconnect = account?.status === "needs-reconnect";
+  const connected = account && !needsReconnect;
+
+  return (
+    <li>
+      <div className="flex items-center gap-4 rounded-xl border border-line bg-surface p-4">
+        <span
+          className={`grid size-10 shrink-0 place-items-center rounded-lg text-[14px] font-bold ${tile}`}
+        >
+          {letter}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[14px] font-medium">{name}</span>
+          <span className="block truncate text-[11.5px] text-muted">
+            {!configured
+              ? "Not set up yet: add its client ID to .env"
+              : connected
+                ? `Connected as ${account.email}`
+                : needsReconnect
+                  ? `${account.email} needs to be reconnected`
+                  : hint}
+          </span>
+        </span>
+        {configured &&
+          (connected ? (
+            <button
+              type="button"
+              onClick={disconnect}
+              disabled={busy}
+              className="flex h-9 shrink-0 items-center gap-2 rounded-lg border border-line px-3.5 text-[12.5px] text-body transition-colors hover:text-ink disabled:opacity-60"
+            >
+              {busy && <Loader2 className="size-3.5 animate-spin" />}
+              Disconnect
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={connect}
+              disabled={busy}
+              className="flex h-9 shrink-0 items-center gap-2 rounded-lg bg-accent px-3.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
+            >
+              {busy ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Link2 className="size-3.5" />
+              )}
+              {needsReconnect ? "Reconnect" : "Connect"}
+            </button>
+          ))}
+      </div>
+      {error && (
+        <p role="alert" className="mt-2 px-1 text-[12px] text-[#f0a090]">
+          {error}
+        </p>
+      )}
+    </li>
   );
 }
