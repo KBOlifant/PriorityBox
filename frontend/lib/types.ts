@@ -24,6 +24,8 @@ export interface Message {
   subject: string;
   preview: string;
   event?: MailEvent;
+  /** The event date as YYYY-MM-DD, for real mail where the AI found one. */
+  eventIso?: string;
   priority: Priority;
   waiting: boolean;
   archived: boolean;

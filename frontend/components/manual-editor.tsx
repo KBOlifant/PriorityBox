@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { addManualEntry, editManualEntry, type ManualInput } from "@/lib/manual";
+import { editSavedEntry } from "@/lib/saved";
 import { actions, useStore } from "@/lib/store";
 
 const EMPTY: ManualInput = { activity: "", eventDate: "", progressNote: "", remarks: "" };
@@ -13,16 +14,30 @@ const EMPTY: ManualInput = { activity: "", eventDate: "", progressNote: "", rema
 const field =
   "w-full rounded-xl border border-line bg-surface px-3.5 text-[14px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent-line focus:ring-2 focus:ring-accent/20";
 
-/** Mounts the form while the store says it is open. */
+/**
+ * Mounts the form while the store says it is open. It edits a manual entry, a
+ * saved email (same fields), or creates a new manual entry.
+ */
 export function ManualEditor() {
-  const { manualEditor, manual } = useStore();
-  const editing = manualEditor?.id ? manual.find((e) => e.id === manualEditor.id) : undefined;
+  const { manualEditor, manual, saved } = useStore();
+  const id = manualEditor?.id;
+  const savedItem = id && manualEditor?.saved ? saved.find((s) => s.id === id && !s.removed) : undefined;
+  const manualItem = id && !manualEditor?.saved ? manual.find((e) => e.id === id) : undefined;
+  const target = savedItem ?? manualItem;
+  // Asked to edit something that no longer exists: show nothing.
+  const open = !!manualEditor && (!id || !!target);
 
   return (
     <AnimatePresence>
-      {manualEditor && (
+      {open && (
         // Keyed so switching between "new" and an entry resets the form.
-        <EditorDialog key={manualEditor.id ?? "new"} entryId={editing?.id} initial={editing ?? EMPTY} />
+        <EditorDialog
+          key={`${manualEditor?.saved ? "saved" : "manual"}:${id ?? "new"}`}
+          entryId={target?.id}
+          isSaved={!!savedItem}
+          context={savedItem ? `${savedItem.sender}: ${savedItem.subject}` : undefined}
+          initial={target ?? EMPTY}
+        />
       )}
     </AnimatePresence>
   );
@@ -31,9 +46,15 @@ export function ManualEditor() {
 function EditorDialog({
   entryId,
   initial,
+  isSaved = false,
+  context,
 }: {
   entryId?: string;
   initial: ManualInput;
+  /** Editing a saved email rather than a manual entry. */
+  isSaved?: boolean;
+  /** The original email this saved item points at, shown for reference. */
+  context?: string;
 }) {
   const { user } = useAuth();
   const [form, setForm] = useState<ManualInput>({
@@ -82,7 +103,9 @@ function EditorDialog({
     setError("");
     try {
       const { rated } = entryId
-        ? await editManualEntry(user.uid, entryId, input)
+        ? isSaved
+          ? await editSavedEntry(user.uid, entryId, input)
+          : await editManualEntry(user.uid, entryId, input)
         : await addManualEntry(user.uid, input);
       if (rated) return close();
       // Saved, but the AI could not set the meter: say so instead of closing silently.
@@ -118,9 +141,16 @@ function EditorDialog({
         className="w-full max-w-[560px] rounded-2xl border border-line bg-[#171719] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)]"
       >
         <header className="flex items-center justify-between border-b border-line px-6 py-4">
-          <h2 id={titleId} className="text-[16px] font-semibold">
-            {entryId ? "Edit entry" : "New entry"}
-          </h2>
+          <div className="min-w-0">
+            <h2 id={titleId} className="text-[16px] font-semibold">
+              {isSaved ? "Edit saved email" : entryId ? "Edit entry" : "New entry"}
+            </h2>
+            {context && (
+              <p className="mt-0.5 truncate text-[12px] text-muted" title={context}>
+                {context}
+              </p>
+            )}
+          </div>
           <button
             type="button"
             onClick={close}

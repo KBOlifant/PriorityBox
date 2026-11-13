@@ -58,7 +58,7 @@ export interface State {
   mode: Mode;
   manual: ManualEntry[];
   /** The manual entry form: null = closed, {} = new entry, {id} = editing that entry. */
-  manualEditor: { id?: string } | null;
+  manualEditor: { id?: string; saved?: boolean } | null;
 }
 
 const MAX_RULES = 5;
@@ -206,7 +206,8 @@ export const actions = {
     manualSource = manual.map(manualToMessage);
     update({ manual, messages: applyOverrides(overrides) });
   },
-  openManualEditor: (id?: string) => update({ manualEditor: id ? { id } : {} }),
+  openManualEditor: (id?: string, saved = false) =>
+    update({ manualEditor: id ? { id, saved } : {} }),
   closeManualEditor: () => update({ manualEditor: null }),
   /** Re-marks several messages at once (from the AI bar). */
   setPriorities(changes: Record<string, Priority>) {

@@ -2,22 +2,27 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, ExternalLink, Trash2 } from "lucide-react";
+import { BookOpen, Calendar, ChevronDown, ExternalLink, Pencil, Reply, Sparkles, Trash2 } from "lucide-react";
+import { AiSummaryPanel, useAiSummary } from "./ai-summary";
+import { FollowUp } from "./details-panel";
 import { EmailModal } from "./email-modal";
 import { PriorityBadge } from "./priority-badge";
 import { RevealButton } from "./reveal-button";
 import { useAuth } from "@/lib/auth";
 import { COLORS, hash, initials, toMessage } from "@/lib/mail-map";
-import { unsaveMessage } from "@/lib/saved";
-import { useStore } from "@/lib/store";
-import type { Message } from "@/lib/types";
+import { savedToMessage, unsaveMessage, updateSavedFields } from "@/lib/saved";
+import { actions, useStore } from "@/lib/store";
+import type { Message, Priority } from "@/lib/types";
 import type { SavedRef } from "@/services/firestore/savedEmails";
 import { MailError, providers } from "@/services/mail";
+import { formatEventDate } from "@/services/mail/classifyParse";
+import { messageLink } from "@/services/mail/parse";
 import { timeAgo } from "@/services/mailCache";
 
 /**
- * A saved-for-later reference. Only the sender and subject are stored; the email
- * itself is fetched from Gmail / Outlook when the user asks to read it.
+ * A saved email, tracked like a manual entry: activity, event date, progress
+ * (meter set by the AI) and remarks, all editable. The email itself is not
+ * stored; "Read email" fetches it from Gmail / Outlook on request.
  */
 export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
   const { user } = useAuth();
@@ -25,13 +30,26 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
   const [reading, setReading] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [followUp, setFollowUp] = useState(false);
+  // The real email body, once it has been read this session.
+  const [liveBody, setLiveBody] = useState<string | undefined>();
+
+  // The AI works on the user's notes, plus the real email when it is known.
+  const loaded = messages.find((m) => m.id === item.messageId);
+  const message = savedToMessage(item, loaded?.body ?? liveBody);
+  const ai = useAiSummary(message);
 
   const provider = providers[item.provider];
-  const link = item.webLink?.startsWith("https://") ? item.webLink : null;
+  const link = messageLink({
+    provider: item.provider,
+    account: item.account,
+    id: item.messageId,
+    webLink: item.webLink,
+  });
+  const edited = item.activity && item.activity !== item.subject;
 
   async function read() {
     // Already loaded in this session: no need to go back to the mailbox.
-    const loaded = messages.find((m) => m.id === item.messageId);
     if (loaded) return setReading(loaded);
 
     setBusy(true);
@@ -41,7 +59,9 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
         throw new MailError(`Connect ${provider.label} again to read this email.`);
       }
       const nativeId = item.messageId.slice(item.messageId.indexOf(":") + 1);
-      setReading(toMessage(await provider.fetchMessage(item.account, nativeId)));
+      const fetched = toMessage(await provider.fetchMessage(item.account, nativeId));
+      setLiveBody(fetched.body);
+      setReading(fetched);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn’t load this email.");
     } finally {
@@ -75,12 +95,59 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
             <PriorityBadge priority={item.priority} />
           </div>
           <h3
-            title={item.subject}
+            title={item.activity}
             className="mt-1.5 line-clamp-2 text-[16px] font-semibold leading-snug"
           >
-            {item.subject}
+            {item.activity}
           </h3>
-          <p className="mt-1.5 text-[12px] text-muted">
+          {edited && (
+            <p className="mt-1 truncate text-[12px] text-muted" title={item.subject}>
+              Email: {item.subject}
+            </p>
+          )}
+          {item.progressNote && (
+            <p className="mt-1.5 line-clamp-3 text-[13.5px] leading-6 text-body">
+              {item.progressNote}
+            </p>
+          )}
+          {item.eventDate && (
+            <span className="mt-3 inline-flex min-h-8 max-w-full items-center gap-2 rounded-lg border border-line bg-canvas/50 px-3 py-1 text-[12px] leading-snug text-body">
+              <Calendar className="size-3.5 shrink-0 text-muted" />
+              <span className="min-w-0">Event date</span>
+              <span className="size-[3px] shrink-0 rounded-full bg-muted" />
+              <span className="min-w-0">{formatEventDate(item.eventDate)}</span>
+            </span>
+          )}
+
+          <div className="mt-3.5">
+            <div className="flex items-baseline justify-between text-[12px]">
+              <span className="font-medium">{item.stage}</span>
+              <span className="tabular-nums text-muted">{item.percent}%</span>
+            </div>
+            <div
+              className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#2b2b2f]"
+              role="progressbar"
+              aria-valuenow={item.percent}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Progress"
+            >
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-[#0a4f9c] to-[#2a78c8]"
+                initial={{ width: 0 }}
+                animate={{ width: `${item.percent}%` }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+              />
+            </div>
+          </div>
+
+          {item.remarks && (
+            <p className="mt-3 line-clamp-2 text-[12.5px] leading-5 text-muted">
+              <span className="font-medium text-body">Remarks: </span>
+              {item.remarks}
+            </p>
+          )}
+          <p className="mt-3 text-[12px] text-muted">
             {provider.label} · {item.account}
             {item.auto ? " · saved automatically" : ""}
           </p>
@@ -102,6 +169,43 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
             external
           />
         )}
+        <RevealButton
+          // Red only for emails that need attention, like everywhere else.
+          tone={item.priority === "High" ? "alert" : "soft"}
+          icon={<Sparkles className="size-3.5 shrink-0" />}
+          label={ai.label}
+          onClick={ai.toggle}
+        />
+        <RevealButton
+          tone={followUp ? "accent" : "neutral"}
+          icon={<Reply className="size-4 shrink-0" />}
+          label={followUp ? "Hide follow-up" : "Write follow-up"}
+          onClick={() => setFollowUp((v) => !v)}
+        />
+        <RevealButton
+          icon={<Pencil className="size-4 shrink-0" />}
+          label="Edit"
+          onClick={() => actions.openManualEditor(item.id, true)}
+        />
+
+        <label className="relative ml-2">
+          <span className="sr-only">Priority for {item.activity}</span>
+          <select
+            value={item.priority}
+            onChange={(e) =>
+              user && void updateSavedFields(user.uid, item.id, { priority: e.target.value as Priority })
+            }
+            className="h-9 cursor-pointer appearance-none rounded-lg border border-line bg-surface-2 pl-3.5 pr-9 text-[13px] text-body outline-none transition-colors hover:border-[#38383d] focus-visible:ring-2 focus-visible:ring-accent/40"
+          >
+            {(["High", "Medium", "Low"] as const).map((p) => (
+              <option key={p} value={p}>
+                {p} Priority
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-body" />
+        </label>
+
         <div className="ml-auto">
           <RevealButton
             icon={<Trash2 className="size-4 shrink-0" />}
@@ -115,6 +219,16 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
         <p role="alert" className="mt-3 text-[12.5px] leading-5 text-[#f0a090]">
           {error}
         </p>
+      )}
+
+      <AnimatePresence initial={false}>
+        {ai.state !== "closed" && <AiSummaryPanel key="summary" summary={ai} />}
+      </AnimatePresence>
+
+      {followUp && (
+        <div className="mt-4 overflow-hidden rounded-xl border border-line bg-[#171719]">
+          <FollowUp message={message} />
+        </div>
       )}
 
       <AnimatePresence>
