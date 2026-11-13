@@ -6,10 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:web": "cross-env ELECTRON_BUILD=1 next build",
+    "electron:dev": "electron .",
+    "electron:start": "npm run build:web && electron .",
+    "dist": "npm run build:web && electron-builder --publish never",
+    "release": "npm run build:web && electron-builder --publish always"
   },
   "dependencies": {
     "@azure/msal-browser": "^5.29.1",
+    "electron-updater": "^6.8.11",
     "firebase": "^13.3.0",
     "framer-motion": "^14.13.0",
     "lucide-react": "^1.72.0",
@@ -22,9 +28,37 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "tailwindcss": "4.3.3",
     "typescript": "^5"
+  },
+  "description": "PriorityBox desktop app",
+  "author": "KBOlifant",
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.kbolifant.prioritybox",
+    "productName": "PriorityBox",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**",
+      "out/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "KBOlifant",
+        "repo": "PriorityBox"
+      }
+    ]
   }
 }
