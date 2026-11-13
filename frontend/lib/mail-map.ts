@@ -21,7 +21,7 @@ export function initials(name: string, email: string) {
   return letters.toUpperCase();
 }
 
-function when(ms: number) {
+export function when(ms: number) {
   const d = new Date(ms);
   const dayStart = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
   const diff = Math.round((dayStart(new Date()) - dayStart(d)) / 86_400_000);

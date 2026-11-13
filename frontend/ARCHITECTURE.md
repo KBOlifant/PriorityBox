@@ -92,6 +92,20 @@ marker so auto-save doesn't bring it back. "Read email" on the Saved screen
 fetches the message from Gmail / Outlook by id (`MailProvider.fetchMessage`),
 so it needs the account to be connected.
 
+### Manual mode
+
+For people who can't connect a mailbox, the **Inbox | Manual** switch in the top
+bar swaps the screens over to entries typed in by hand
+(`users/{uid}/manualEntries/{id}`). Each entry has an activity (what the email
+is about), an optional event date (date picker), a progress comment and
+remarks. The AI sets the progress meter and stage from the progress comment
+(`services/groq/progress.ts`), and only re-rates when the activity, date or
+comment changes. Entries become ordinary cards (`lib/manual-map.ts`), so the
+Priority, Waiting, Events and Archive screens and the AI bar work unchanged.
+Edits made on a card (priority, remarks, complete) are written to the entry
+itself (`lib/manual.ts`), not kept as browser-side overrides. Unlike connected
+mail, these entries are stored in full, because the user wrote them.
+
 ### Paging
 
 `services/mail/pager.ts` merges all connected accounts newest-first and hands

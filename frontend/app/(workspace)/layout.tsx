@@ -1,5 +1,6 @@
 import { AuthGate } from "@/components/auth-gate";
-import { AiFilterChip, MailBanner, MailSync, SavedSync } from "@/components/mail-sync";
+import { AiFilterChip, MailBanner, MailSync, ManualHint, ManualSync, SavedSync } from "@/components/mail-sync";
+import { ManualEditor } from "@/components/manual-editor";
 import { Pagination } from "@/components/pagination";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
@@ -20,6 +21,7 @@ export default function WorkspaceLayout({
             <div className="mx-auto w-full max-w-[1160px]">
               <MailBanner />
               <AiFilterChip />
+              <ManualHint />
               {children}
               <Pagination />
             </div>
@@ -28,6 +30,8 @@ export default function WorkspaceLayout({
         <Onboarding />
         <MailSync />
         <SavedSync />
+        <ManualSync />
+        <ManualEditor />
       </div>
     </AuthGate>
   );

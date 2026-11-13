@@ -35,7 +35,7 @@ export interface Message {
   /** Full plain-text body for real mail. Sample messages only have `preview`. */
   body?: string;
   /** Set for real mail, absent for sample data. */
-  provider?: "gmail" | "outlook";
+  provider?: "gmail" | "outlook" | "manual";
   /** Opens the message in the provider's web mail. */
   webLink?: string;
   /** Which fetched page (1-based) a real message belongs to. */

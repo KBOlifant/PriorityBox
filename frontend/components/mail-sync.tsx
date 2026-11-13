@@ -5,8 +5,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
+import { createEditSink, loadManual } from "@/lib/manual";
 import { loadSaved, missingAutoSaves, saveMessage } from "@/lib/saved";
-import { actions, useStore } from "@/lib/store";
+import { actions, setEditSink, useStore } from "@/lib/store";
 import { timeAgo } from "@/services/mailCache";
 
 /** Loads the connected inboxes once the user is signed in. Renders nothing. */
@@ -23,7 +24,7 @@ export function MailSync() {
 
 /** Slim notice above the page for sync progress and problems. */
 export function MailBanner() {
-  const { sync } = useStore();
+  const { sync, mode } = useStore();
   const stale = sync.accounts.filter((a) => a.status === "needs-reconnect");
   const analysing = sync.status === "classifying";
   const problem = stale.length
@@ -37,7 +38,7 @@ export function MailBanner() {
       ? `Showing the emails saved on this device from ${timeAgo(sync.cachedAt)}.`
       : null;
   const message = [problem, savedCopy].filter(Boolean).join(" ") || null;
-  const show = Boolean(message) || analysing;
+  const show = mode === "mail" && (Boolean(message) || analysing);
 
   return (
     <AnimatePresence initial={false}>
@@ -138,4 +139,44 @@ export function SavedSync() {
   }, [uid, messages, saved, savedLoaded]);
 
   return null;
+}
+
+/** Loads the user's manual entries and lets cards save their own edits. Renders nothing. */
+export function ManualSync() {
+  const { user } = useAuth();
+  const uid = user?.uid;
+
+  useEffect(() => {
+    if (!uid) return;
+    void loadManual(uid);
+    setEditSink(createEditSink(uid));
+    return () => setEditSink(null);
+  }, [uid]);
+
+  return null;
+}
+
+/** Shown in manual mode while there is nothing yet. */
+export function ManualHint() {
+  const { mode, manual } = useStore();
+  if (mode !== "manual" || manual.length > 0) return null;
+
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-line bg-surface px-5 py-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-medium">Manual mode</p>
+        <p className="mt-1 text-[12.5px] leading-5 text-muted">
+          Add the emails you want to keep track of yourself: what each is about, any event date, how it is going,
+          and your own remarks. The AI sets the progress meter.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => actions.openManualEditor()}
+        className="h-10 shrink-0 rounded-xl bg-accent px-4 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover"
+      >
+        Add your first entry
+      </button>
+    </div>
+  );
 }

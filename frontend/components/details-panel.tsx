@@ -81,7 +81,8 @@ export function DetailsPanel({ message: m }: { message: Message }) {
         </div>
       </div>
 
-      {percent < 100 && <FollowUp message={m} />}
+      {/* A reply needs a sender, which hand-entered items don't have. */}
+      {percent < 100 && m.provider !== "manual" && <FollowUp message={m} />}
     </div>
   );
 }

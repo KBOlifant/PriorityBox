@@ -6,10 +6,10 @@ import { useStore } from "@/lib/store";
 
 /** Moves through the inbox 25 messages at a time. Fetches the next batch on demand. */
 export function Pagination() {
-  const { usingSample, sync, aiFilter, messages } = useStore();
+  const { usingSample, sync, aiFilter, messages, mode } = useStore();
 
   // Sample data has no pages, and an AI search shows matches from every page.
-  if (usingSample || aiFilter) return null;
+  if (mode === "manual" || usingSample || aiFilter) return null;
   if (sync.loadedPages <= 1 && !sync.hasMore) return null;
 
   const loading = sync.status === "loading";

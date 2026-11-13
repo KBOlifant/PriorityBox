@@ -3,13 +3,14 @@
 import { motion } from "framer-motion";
 import { Bell, Plus, RefreshCw, Search } from "lucide-react";
 import { AiBar } from "./ai-bar";
+import { ModeSwitch } from "./mode-switch";
 import { SettingsMenu } from "./settings-menu";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
 import { actions, useStore } from "@/lib/store";
 
 export function Topbar() {
-  const { query, usingSample, sync } = useStore();
+  const { query, usingSample, sync, mode } = useStore();
   const { user } = useAuth();
   const syncing = sync.status === "loading" || sync.status === "classifying";
 
@@ -31,7 +32,7 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-3">
-        {!usingSample && user && (
+        {mode === "mail" && !usingSample && user && (
           <button
             type="button"
             aria-label="Refresh mail"
@@ -46,6 +47,7 @@ export function Topbar() {
             />
           </button>
         )}
+        <ModeSwitch />
         <SettingsMenu />
         <button
           type="button"
@@ -55,15 +57,27 @@ export function Topbar() {
           <Bell className="size-[18px]" strokeWidth={1.7} />
           <span className="absolute right-2.5 top-2.5 size-1.5 rounded-full bg-[#C21E29]" />
         </button>
-        <motion.button
-          type="button"
-          onClick={actions.openConnect}
-          whileTap={{ scale: 0.97 }}
-          className="flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-[13px] font-medium transition-colors hover:border-[#38383d]"
-        >
-          <Plus className="size-4" />
-          Add inbox
-        </motion.button>
+        {mode === "manual" ? (
+          <motion.button
+            type="button"
+            onClick={() => actions.openManualEditor()}
+            whileTap={{ scale: 0.97 }}
+            className="flex h-10 items-center gap-2 rounded-xl bg-accent px-4 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover"
+          >
+            <Plus className="size-4" />
+            New entry
+          </motion.button>
+        ) : (
+          <motion.button
+            type="button"
+            onClick={actions.openConnect}
+            whileTap={{ scale: 0.97 }}
+            className="flex h-10 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-[13px] font-medium transition-colors hover:border-[#38383d]"
+          >
+            <Plus className="size-4" />
+            Add inbox
+          </motion.button>
+        )}
       </div>
     </header>
   );

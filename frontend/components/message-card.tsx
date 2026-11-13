@@ -7,6 +7,8 @@ import {
   BookmarkCheck,
   BookOpen,
   Calendar,
+  Pencil,
+  Trash2,
   Check,
   ChevronDown,
   Download,
@@ -18,6 +20,7 @@ import { EmailModal } from "./email-modal";
 import { RevealButton } from "./reveal-button";
 import { DetailsPanel } from "./details-panel";
 import { useAuth } from "@/lib/auth";
+import { deleteManualEntry } from "@/lib/manual";
 import { isSavable, saveMessage, unsaveMessage } from "@/lib/saved";
 import { needsAttention } from "@/lib/selectors";
 import { actions } from "@/lib/store";
@@ -45,6 +48,8 @@ export function MessageCard({
   saved?: boolean;
 }) {
   const { user } = useAuth();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const manual = m.provider === "manual";
   const [open, setOpen] = useState(false);
   // "Read full email" opens the whole message in a dialog; the button only exists once the card is expanded.
   const [reading, setReading] = useState(false);
@@ -72,6 +77,12 @@ export function MessageCard({
     const el = textRef.current;
     if (el) setTruncated(el.scrollHeight > el.clientHeight + 1);
   }, [open, m.body, m.preview]);
+
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const t = setTimeout(() => setConfirmDelete(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirmDelete]);
 
   function toggleOpen() {
     setOpen(!open);
@@ -124,40 +135,61 @@ export function MessageCard({
       className="flex flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-[#323236]"
     >
       <div className="-mt-2 mb-2 -ml-2 flex items-center gap-1">
-        <RevealButton
-          icon={<Download className="size-4 shrink-0" />}
-          label="Download"
-          onClick={() => downloadMessage(m)}
-        />
-        {isSavable(m) && user && (
-          <RevealButton
-            icon={
-              saved ? (
-                <BookmarkCheck className="size-4 shrink-0 text-accent-text" />
-              ) : (
-                <Bookmark className="size-4 shrink-0" />
-              )
-            }
-            label={saved ? "Remove from saved" : "Save for later"}
-            onClick={() =>
-              void (saved ? unsaveMessage(user.uid, m.id) : saveMessage(user.uid, m))
-            }
-          />
-        )}
-        {link ? (
-          <RevealButton
-            icon={<ExternalLink className="size-4 shrink-0" />}
-            label={`Open in ${m.provider === "outlook" ? "Outlook" : "Gmail"}`}
-            href={link}
-            external
-          />
+        {manual ? (
+          <>
+            <RevealButton
+              icon={<Pencil className="size-4 shrink-0" />}
+              label="Edit"
+              onClick={() => actions.openManualEditor(m.id.slice("manual:".length))}
+            />
+            <RevealButton
+              tone={confirmDelete ? "alert" : "neutral"}
+              icon={<Trash2 className="size-4 shrink-0" />}
+              label={confirmDelete ? "Click again to delete" : "Delete"}
+              onClick={() => {
+                if (!confirmDelete) return setConfirmDelete(true);
+                if (user) void deleteManualEntry(user.uid, m.id.slice("manual:".length));
+              }}
+            />
+          </>
         ) : (
-          // Sample messages have no real email to open, so this starts a reply instead.
-          <RevealButton
-            icon={<ExternalLink className="size-4 shrink-0" />}
-            label="Reply by email"
-            href={mailtoHref(m)}
-          />
+          <>
+            <RevealButton
+              icon={<Download className="size-4 shrink-0" />}
+              label="Download"
+              onClick={() => downloadMessage(m)}
+            />
+            {isSavable(m) && user && (
+              <RevealButton
+                icon={
+                  saved ? (
+                    <BookmarkCheck className="size-4 shrink-0 text-accent-text" />
+                  ) : (
+                    <Bookmark className="size-4 shrink-0" />
+                  )
+                }
+                label={saved ? "Remove from saved" : "Save for later"}
+                onClick={() =>
+                  void (saved ? unsaveMessage(user.uid, m.id) : saveMessage(user.uid, m))
+                }
+              />
+            )}
+            {link ? (
+              <RevealButton
+                icon={<ExternalLink className="size-4 shrink-0" />}
+                label={`Open in ${m.provider === "outlook" ? "Outlook" : "Gmail"}`}
+                href={link}
+                external
+              />
+            ) : (
+              // Sample messages have no real email to open, so this starts a reply instead.
+              <RevealButton
+                icon={<ExternalLink className="size-4 shrink-0" />}
+                label="Reply by email"
+                href={mailtoHref(m)}
+              />
+            )}
+          </>
         )}
       </div>
 
