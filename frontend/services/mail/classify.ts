@@ -24,8 +24,11 @@ You triage emails for the recipient. For EACH email return:
 
 Reply with only JSON: {"results":[{"id":"<id as given>","priority":"","waiting":false,"event":null,"stage":"","percent":0,"tags":[]}]}`;
 
-function describe(mail: RawMail[]): string {
+function describe(mail: RawMail[], rules: string[]): string {
   const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
+  const preferences = rules.length
+    ? `The recipient's own definition of urgency. Apply it when choosing "priority", overriding the defaults above:\n${rules.map((r) => `- ${r}`).join("\n")}\n\n`
+    : "";
   const blocks = mail.map((m) =>
     [
       `### id: ${m.id}`,
@@ -35,7 +38,7 @@ function describe(mail: RawMail[]): string {
       `Body: ${m.body.slice(0, BODY_CHARS)}`,
     ].join("\n"),
   );
-  return `Today: ${today}\n\n${blocks.join("\n\n")}`;
+  return `Today: ${today}\n\n${preferences}${blocks.join("\n\n")}`;
 }
 
 /**
@@ -45,6 +48,7 @@ function describe(mail: RawMail[]): string {
 export async function classifyMail(
   uid: string,
   mail: RawMail[],
+  rules: string[] = [],
 ): Promise<Record<string, Classification>> {
   if (!mail.length) return {};
 
@@ -63,7 +67,7 @@ export async function classifyMail(
   for (let i = 0; i < fresh.length; i += CHUNK) {
     const chunk = fresh.slice(i, i + CHUNK);
     try {
-      const reply = await chat(PROMPT, describe(chunk), 1800, { json: true });
+      const reply = await chat(PROMPT, describe(chunk, rules), 1800, { json: true });
       const parsed = parseClassifications(reply, new Set(chunk.map((m) => m.id)));
       for (const [id, c] of Object.entries(parsed)) {
         results[id] = c;

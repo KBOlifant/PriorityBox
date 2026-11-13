@@ -47,18 +47,27 @@ export function SectionHeading({
   meta,
   count,
   icon,
+  tone = "accent",
 }: {
   title: string;
   meta?: string;
   count?: number;
   icon?: React.ReactNode;
+  /** "alert" draws the count in red, for sections that need action. */
+  tone?: "accent" | "alert";
 }) {
   return (
     <div className="flex items-center gap-3">
       {icon}
       <h2 className="text-[14.5px] font-semibold">{title}</h2>
       {count !== undefined && (
-        <span className="grid h-5 min-w-5 place-items-center rounded-full bg-accent-soft px-1.5 text-[11px] font-medium text-accent-text">
+        <span
+          className={`grid h-5 min-w-5 place-items-center rounded-full px-1.5 text-[11px] font-medium ${
+            tone === "alert"
+              ? "bg-alert text-white"
+              : "bg-accent-soft text-accent-text"
+          }`}
+        >
           {count}
         </span>
       )}

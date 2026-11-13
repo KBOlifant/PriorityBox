@@ -32,8 +32,9 @@ export default function PriorityInboxPage() {
               <SectionHeading
                 title="Needs attention"
                 count={attention.length}
+                tone="alert"
                 icon={
-                  <span className="grid size-8 place-items-center rounded-lg border border-accent-line bg-accent-soft text-accent-text">
+                  <span className="grid size-8 place-items-center rounded-lg border border-alert-line bg-alert-soft text-alert-text">
                     <Flag className="size-3.5" />
                   </span>
                 }

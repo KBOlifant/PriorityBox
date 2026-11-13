@@ -149,6 +149,9 @@ async function api<T>(path: string, token: string): Promise<T> {
       "Gmail refused access. Make sure the Gmail API is enabled and this account is a test user.",
     );
   }
+  if (res.status === 404) {
+    throw new MailError("That email no longer exists in Gmail.");
+  }
   if (res.status === 429) {
     throw new MailError("Gmail is rate limiting requests. Try again shortly.");
   }
@@ -178,12 +181,20 @@ export const gmail: MailProvider = {
     }
   },
 
-  async fetchInbox(account, limit): Promise<RawMail[]> {
+  async fetchMessage(account, nativeId) {
+    const token = cachedToken();
+    if (!token) throw new MailError("Gmail session expired. Reconnect to continue.");
+    const msg = await api<GmailMessage>(`/messages/${encodeURIComponent(nativeId)}?format=full`, token);
+    return normalizeGmail(msg, account);
+  },
+
+  async fetchInbox(account, { limit, cursor }) {
     const token = cachedToken();
     if (!token) throw new MailError("Gmail session expired. Reconnect to continue.");
 
-    const list = await api<{ messages?: { id: string }[] }>(
-      `/messages?maxResults=${limit}&labelIds=INBOX`,
+    const page = cursor ? `&pageToken=${encodeURIComponent(cursor)}` : "";
+    const list = await api<{ messages?: { id: string }[]; nextPageToken?: string }>(
+      `/messages?maxResults=${limit}&labelIds=INBOX${page}`,
       token,
     );
     const ids = (list.messages ?? []).map((m) => m.id);
@@ -196,7 +207,7 @@ export const gmail: MailProvider = {
       );
       mail.push(...messages.map((m) => normalizeGmail(m, account)));
     }
-    return mail;
+    return { mail, next: list.nextPageToken };
   },
 
   async disconnect() {

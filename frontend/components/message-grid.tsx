@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Inbox } from "lucide-react";
 import { MessageCard } from "./message-card";
+import { useStore } from "@/lib/store";
 import type { Message } from "@/lib/types";
 
 export function MessageGrid({
@@ -12,6 +13,9 @@ export function MessageGrid({
   messages: Message[];
   filtering?: boolean;
 }) {
+  const { saved } = useStore();
+  const savedIds = new Set(saved.filter((s) => !s.removed).map((s) => s.messageId));
+
   if (messages.length === 0) {
     return (
       <motion.div
@@ -36,7 +40,7 @@ export function MessageGrid({
     <div className="grid items-stretch gap-3 lg:grid-cols-2">
       <AnimatePresence mode="popLayout" initial>
         {messages.map((m, i) => (
-          <MessageCard key={m.id} message={m} index={i} />
+          <MessageCard key={m.id} message={m} index={i} saved={savedIds.has(m.id)} />
         ))}
       </AnimatePresence>
     </div>

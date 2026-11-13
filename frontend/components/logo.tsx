@@ -1,23 +1,16 @@
+import Image from "next/image";
+import logo from "@/assets/PriorityBoxLogo.png";
+
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (
-    <span
-      className="grid shrink-0 place-items-center rounded-[10px] bg-gradient-to-b from-[#0a4f9c] to-[#083f7d] shadow-[0_4px_14px_-2px_rgba(8,63,125,0.6)]"
-      style={{ width: size, height: size }}
+    <Image
+      src={logo}
+      alt=""
       aria-hidden
-    >
-      <svg
-        width={size * 0.5}
-        height={size * 0.5}
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke="white"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M13 8.2V11a2.5 2.5 0 0 1-2.5 2.5H5A2.5 2.5 0 0 1 2.5 11V5.5A2.5 2.5 0 0 1 5 3h3.2" />
-        <circle cx="12.4" cy="3.6" r="1.1" fill="white" stroke="none" />
-      </svg>
-    </span>
+      width={size}
+      height={size}
+      priority
+      className="shrink-0 object-contain"
+    />
   );
 }

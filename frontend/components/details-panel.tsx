@@ -35,9 +35,9 @@ export function DetailsPanel({ message: m }: { message: Message }) {
           <p className={eyebrow}>Progress</p>
           <div className="mt-2 flex items-baseline justify-between text-[14px]">
             <span className="font-medium">{stage}</span>
-            <span className="text-[11px] tabular-nums text-muted">
+            {/* <span className="text-[11px] tabular-nums text-muted">
               {percent}%
-            </span>
+            </span> */}
           </div>
           <div
             className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#2b2b2f]"
@@ -94,7 +94,8 @@ export function DetailsPanel({ message: m }: { message: Message }) {
         </div>
       </div>
 
-      {percent < 100 && <FollowUp message={m} />}
+      {/* A reply needs a sender, which hand-entered items don't have. */}
+      {percent < 100 && m.provider !== "manual" && <FollowUp message={m} />}
     </div>
   );
 }

@@ -33,7 +33,7 @@ Rules:
 | `services/firestore/crud.ts` | Generic create / get / list / update / upsert / remove / watch for any collection path. Adds `createdAt` / `updatedAt` |
 | `services/firestore/users.ts` | `users/{uid}` profile CRUD |
 | `services/firestore/messageState.ts` | `users/{uid}/messageState/{messageId}` CRUD for the user's own edits (priority, remarks) |
-| `services/groq/` | `summarizeEmail` and `draftReply` using `openai/gpt-oss-120b` |
+| `services/groq/` | `summarizeEmail` and `draftReply` using `openai/gpt-oss-120b`; `evaluate.ts` interprets the AI bar (find emails, re-mark priority, remember urgency rules) |
 | `services/mail/` | Real inboxes behind one `MailProvider` interface: `gmail.ts` (Google Identity Services + Gmail API), `outlook.ts` (MSAL + Microsoft Graph), `parse.ts` (normalising messages), `classify.ts` (AI priority, dates and progress) |
 | `services/firestore/mailAccounts.ts` | Which accounts are connected: `users/{uid}/mailAccounts/{provider}` (address only, never tokens) |
 | `services/firestore/classifications.ts` | AI analysis per message: `users/{uid}/classifications/{messageId}` (no email text) |
@@ -70,11 +70,64 @@ data (`lib/mock-data.ts`).
 
 - Tokens live in `sessionStorage` (Google ~1h, Microsoft via MSAL). When one
   can't be renewed silently the account is flagged "needs reconnect".
+- A copy of the loaded inbox is kept in `localStorage` (`services/mailCache.ts`)
+  so emails survive a refresh when the login can't be renewed silently. The
+  user chooses how long it lives (gear menu: don't keep / 1h / 6h / 24h / 7 days,
+  default 24h). It is never uploaded, and is cleared on expiry, sign-out,
+  disconnecting an account, or "Clear saved emails now".
 - Message text is never stored in Firestore. Only the AI analysis and the
   connected account addresses are.
 - Email text is sent to Groq for classification, summaries and drafts.
 - Gmail uses the restricted `gmail.readonly` scope. Until Google verifies the
   app, only accounts listed as test users can connect.
+
+### Saved for later
+
+Emails are saved as **references** in `users/{uid}/savedEmails/{id}`: which
+message it is (provider, account, id), the web link, and the sender and subject
+so the list is readable offline. The body is never stored. High priority emails
+are saved automatically (`SavedSync` in `components/mail-sync.tsx`); any email
+can also be saved with the bookmark button. Removing one keeps a `removed`
+marker so auto-save doesn't bring it back. "Read email" on the Saved screen
+fetches the message from Gmail / Outlook by id (`MailProvider.fetchMessage`),
+so it needs the account to be connected.
+
+### Manual mode
+
+For people who can't connect a mailbox, the **Inbox | Manual** switch in the top
+bar swaps the screens over to entries typed in by hand
+(`users/{uid}/manualEntries/{id}`). Each entry has an activity (what the email
+is about), an optional event date (date picker), a progress comment and
+remarks. The AI sets the progress meter and stage from the progress comment
+(`services/groq/progress.ts`), and only re-rates when the activity, date or
+comment changes. Entries become ordinary cards (`lib/manual-map.ts`), so the
+Priority, Waiting, Events and Archive screens and the AI bar work unchanged.
+Edits made on a card (priority, remarks, complete) are written to the entry
+itself (`lib/manual.ts`), not kept as browser-side overrides. Unlike connected
+mail, these entries are stored in full, because the user wrote them.
+
+### Paging
+
+`services/mail/pager.ts` merges all connected accounts newest-first and hands
+out pages of exactly 25. Each account is fetched lazily (Gmail `pageToken`,
+Graph `$skip`), so "Next" only fetches what that page needs. Pages already
+fetched are kept, so "Previous" is instant. Page analysis is queued one page at
+a time, because Groq's free tier allows 8,000 tokens per minute.
+
+### AI bar
+
+The input next to search sends a free-text instruction plus the newest 60 loaded
+messages (compact, short refs instead of ids) to Groq. The reply can show a set
+of matching emails (an "AI search" chip appears above the page, matches span
+every loaded page), re-mark priorities, and remember a standing "what counts as
+urgent" rule. Rules are kept in the browser and passed into the classifier for
+pages loaded later.
+
+Who an email is from is matched in code (`services/groq/peopleMatch.ts`), not
+by the model: the model only says which senders the user means, and the app
+matches names, addresses and companies against every loaded message. For
+"sender + topic" searches a second request judges the topic over just that
+sender's emails, so older pages are still covered.
 
 ### Setup
 

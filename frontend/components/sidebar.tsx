@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Archive,
+  Bookmark,
   Calendar,
   Clock,
   Inbox,
@@ -29,6 +30,7 @@ const NAV: {
   { key: "waiting", href: "/waiting", label: "Waiting", icon: Clock },
   { key: "events", href: "/events", label: "Events", icon: Calendar },
   { key: "archive", href: "/archive", label: "Archive", icon: Archive },
+  { key: "saved", href: "/saved", label: "Saved", icon: Bookmark },
 ];
 
 const LABELS = [
@@ -47,8 +49,8 @@ export function Sidebar() {
     <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-line bg-sidebar md:flex">
       <div className="flex h-[72px] items-center gap-3 px-6">
         <LogoMark />
-        <span className="text-[15px] font-semibold tracking-tight">
-          Priority
+        <span className="text-[15px] font-semibold text-zinc-300">
+          PriorityBox
         </span>
       </div>
 

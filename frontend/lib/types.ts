@@ -1,6 +1,12 @@
 export type Priority = "High" | "Medium" | "Low";
 export type Filter = "All" | Priority;
-export type PageKey = "priority" | "all" | "waiting" | "events" | "archive";
+export type PageKey =
+  | "priority"
+  | "all"
+  | "waiting"
+  | "events"
+  | "archive"
+  | "saved";
 
 export interface MailEvent {
   label: string;
@@ -29,7 +35,11 @@ export interface Message {
   /** Full plain-text body for real mail. Sample messages only have `preview`. */
   body?: string;
   /** Set for real mail, absent for sample data. */
-  provider?: "gmail" | "outlook";
+  provider?: "gmail" | "outlook" | "manual";
   /** Opens the message in the provider's web mail. */
   webLink?: string;
+  /** Which fetched page (1-based) a real message belongs to. */
+  page?: number;
+  /** The connected account (email address) a real message belongs to. */
+  account?: string;
 }

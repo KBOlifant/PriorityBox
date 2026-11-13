@@ -3,6 +3,8 @@ import type { Message } from "@/lib/types";
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = "openai/gpt-oss-120b";
 const TIMEOUT_MS = 30_000;
+const RATE_LIMIT_RETRIES = 2;
+const MAX_RETRY_WAIT_MS = 15_000;
 
 /** Raised with a message that is safe to show to the user. */
 export class GroqError extends Error {}
@@ -40,29 +42,39 @@ export async function chat(
   const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
   if (!apiKey) throw new GroqError("AI isn’t configured yet.");
 
-  let res: Response;
-  try {
-    res = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-        temperature: 0.4,
-        reasoning_effort: "low",
-        max_completion_tokens: maxTokens,
-        ...(json ? { response_format: { type: "json_object" } } : {}),
-      }),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-  } catch {
-    throw new GroqError("Can’t reach the AI service. Check your connection.");
+  const body = JSON.stringify({
+    model: MODEL,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+    temperature: 0.4,
+    reasoning_effort: "low",
+    max_completion_tokens: maxTokens,
+    ...(json ? { response_format: { type: "json_object" } } : {}),
+  });
+
+  let res!: Response;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      res = await fetch(GROQ_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body,
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+    } catch {
+      throw new GroqError("Can’t reach the AI service. Check your connection.");
+    }
+    if (res.status !== 429 || attempt >= RATE_LIMIT_RETRIES) break;
+
+    // Rate limited: wait as long as Groq asks (or back off), then try again.
+    const asked = Number(res.headers.get("retry-after"));
+    const delay = asked > 0 ? asked * 1000 : 3000 * (attempt + 1);
+    await new Promise((resolve) => setTimeout(resolve, Math.min(delay, MAX_RETRY_WAIT_MS)));
   }
 
   if (res.status === 429) {

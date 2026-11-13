@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import * as authService from "@/services/auth";
+import { clearMailCache } from "@/services/mailCache";
 import type { User } from "@/services/auth";
 
 interface AuthValue {
@@ -53,7 +54,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await authService.signInWithGoogle();
       },
       resetPassword: authService.resetPassword,
-      signOut: authService.signOut,
+      async signOut() {
+        clearMailCache(user?.uid); // cached emails must not outlive the session
+        await authService.signOut();
+      },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- profileVersion forces a new value after profile edits
     [user, loading, profileVersion],
