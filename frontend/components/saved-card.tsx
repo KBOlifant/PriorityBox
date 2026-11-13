@@ -18,6 +18,7 @@ import { MailError, providers } from "@/services/mail";
 import { formatEventDate } from "@/services/mail/classifyParse";
 import { messageLink } from "@/services/mail/parse";
 import { timeAgo } from "@/services/mailCache";
+import { loadSavedBody, storeSavedBody, type SavedBody } from "@/services/savedBodies";
 
 /**
  * A saved email, tracked like a manual entry: activity, event date, progress
@@ -31,12 +32,14 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [followUp, setFollowUp] = useState(false);
-  // The real email body, once it has been read this session.
-  const [liveBody, setLiveBody] = useState<string | undefined>();
+  // The copy of the email kept on this device when it was saved, so it can be read without the inbox.
+  const [kept, setKept] = useState<SavedBody | null>(() =>
+    user ? loadSavedBody(user.uid, item.id) : null,
+  );
 
   // The AI works on the user's notes, plus the real email when it is known.
   const loaded = messages.find((m) => m.id === item.messageId);
-  const message = savedToMessage(item, loaded?.body ?? liveBody);
+  const message = savedToMessage(item, loaded?.body ?? kept?.body);
   const ai = useAiSummary(message);
 
   const provider = providers[item.provider];
@@ -49,18 +52,25 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
   const edited = item.activity && item.activity !== item.subject;
 
   async function read() {
-    // Already loaded in this session: no need to go back to the mailbox.
+    // Already loaded in this session, or kept on this device: no need to go back to the mailbox.
     if (loaded) return setReading(loaded);
+    if (kept) return setReading({ ...savedToMessage(item, kept.body), day: kept.day, time: kept.time });
 
     setBusy(true);
     setError("");
     try {
       if (!(await provider.restore(item.account))) {
-        throw new MailError(`Connect ${provider.label} again to read this email.`);
+        throw new MailError(
+          `This email isn’t kept on this device and ${provider.label} isn’t connected. Connect it to read the email, or open it in ${provider.label.replace("Google ", "").replace("Microsoft ", "")}.`,
+        );
       }
       const nativeId = item.messageId.slice(item.messageId.indexOf(":") + 1);
       const fetched = toMessage(await provider.fetchMessage(item.account, nativeId));
-      setLiveBody(fetched.body);
+      if (user && fetched.body) {
+        const entry = { body: fetched.body, day: fetched.day, time: fetched.time };
+        storeSavedBody(user.uid, item.id, entry);
+        setKept(entry);
+      }
       setReading(fetched);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn’t load this email.");
@@ -174,6 +184,8 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
           tone={item.priority === "High" ? "alert" : "soft"}
           icon={<Sparkles className="size-3.5 shrink-0" />}
           label={ai.label}
+          disabled={ai.disabled}
+          title={ai.hint}
           onClick={ai.toggle}
         />
         <RevealButton

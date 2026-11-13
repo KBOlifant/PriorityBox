@@ -1,4 +1,5 @@
 import * as crud from "./crud";
+import type { Stored } from "./crud";
 import { USERS } from "./users";
 import type { Priority } from "@/lib/types";
 
@@ -47,29 +48,35 @@ const path = (uid: string) => `${USERS}/${uid}/savedEmails`;
 /** Firestore ids can't contain "/". */
 export const savedDocId = (messageId: string) => messageId.replace(/\//g, "_");
 
+const fromDoc = (d: Stored<SavedEmail>): SavedRef => ({
+  id: d.id,
+  provider: d.provider,
+  account: d.account,
+  messageId: d.messageId,
+  webLink: d.webLink,
+  sender: d.sender,
+  senderEmail: d.senderEmail ?? "",
+  subject: d.subject,
+  priority: d.priority,
+  // Items saved before these fields existed fall back to sensible defaults.
+  activity: d.activity || d.subject,
+  eventDate: d.eventDate ?? "",
+  progressNote: d.progressNote ?? "",
+  remarks: d.remarks ?? "",
+  stage: d.stage ?? "Not rated",
+  percent: typeof d.percent === "number" ? d.percent : 0,
+  auto: !!d.auto,
+  removed: !!d.removed,
+  savedAt: d.savedAt ?? 0,
+});
+
 export async function listSavedEmails(uid: string): Promise<SavedRef[]> {
-  const docs = await crud.list<SavedEmail>(path(uid));
-  return docs.map((d) => ({
-    id: d.id,
-    provider: d.provider,
-    account: d.account,
-    messageId: d.messageId,
-    webLink: d.webLink,
-    sender: d.sender,
-    senderEmail: d.senderEmail ?? "",
-    subject: d.subject,
-    priority: d.priority,
-    // Items saved before these fields existed fall back to sensible defaults.
-    activity: d.activity || d.subject,
-    eventDate: d.eventDate ?? "",
-    progressNote: d.progressNote ?? "",
-    remarks: d.remarks ?? "",
-    stage: d.stage ?? "Not rated",
-    percent: typeof d.percent === "number" ? d.percent : 0,
-    auto: !!d.auto,
-    removed: !!d.removed,
-    savedAt: d.savedAt ?? 0,
-  }));
+  return (await crud.list<SavedEmail>(path(uid))).map(fromDoc);
+}
+
+/** The saved emails kept on this device: instant, and works without a connection. */
+export async function listSavedEmailsCached(uid: string): Promise<SavedRef[]> {
+  return (await crud.listFromCache<SavedEmail>(path(uid))).map(fromDoc);
 }
 
 export const saveEmailRef = (uid: string, ref: SavedEmail) =>

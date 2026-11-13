@@ -12,6 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useAuth, useProfile } from "@/lib/auth";
+import { AI_OFFLINE_HINT, useOnline } from "@/lib/online";
 import { actions } from "@/lib/store";
 import {
   createFollowUp,
@@ -102,6 +103,7 @@ export function DetailsPanel({ message: m }: { message: Message }) {
 export function FollowUp({ message: m }: { message: Message }) {
   const { name: userName } = useProfile();
   const { user } = useAuth();
+  const online = useOnline();
   const [state, setState] = useState<"idle" | "loading" | "ready">("idle");
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
@@ -187,16 +189,19 @@ export function FollowUp({ message: m }: { message: Message }) {
             AI follow-up assistant
           </p>
           <p className="mt-1.5 text-[11.5px] text-muted">
-            Progress is incomplete. Draft a context-aware reply or approval.
+            {online
+              ? "Progress is incomplete. Draft a context-aware reply or approval."
+              : "Offline: the AI can’t write a draft until you’re back online."}
           </p>
         </div>
         {state !== "ready" && (
           <motion.button
             type="button"
             onClick={() => void write()}
-            disabled={state === "loading"}
+            disabled={state === "loading" || !online}
+            title={online ? undefined : AI_OFFLINE_HINT}
             whileTap={{ scale: 0.97 }}
-            className="flex h-9 items-center gap-2 rounded-lg bg-accent px-4 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-70"
+            className="flex h-9 items-center gap-2 rounded-lg bg-accent px-4 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
             {state === "loading" ? (
               <Loader2 className="size-3.5 animate-spin" />

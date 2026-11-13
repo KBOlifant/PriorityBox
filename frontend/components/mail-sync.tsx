@@ -6,7 +6,7 @@ import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
 import { createEditSink, loadManual } from "@/lib/manual";
-import { loadSaved, missingAutoSaves, saveMessage } from "@/lib/saved";
+import { keepBody, loadSaved, missingAutoSaves, missingBodies, saveMessage } from "@/lib/saved";
 import { actions, setEditSink, useStore } from "@/lib/store";
 import { timeAgo } from "@/services/mailCache";
 
@@ -137,6 +137,12 @@ export function SavedSync() {
     }, 800); // let priorities settle (AI analysis, re-marks) before saving
     return () => clearTimeout(timer);
   }, [uid, messages, saved, savedLoaded]);
+
+  // Emails saved earlier get their text kept on this device too, whenever they are loaded.
+  useEffect(() => {
+    if (!uid) return;
+    for (const m of missingBodies(uid, messages, saved)) keepBody(uid, m);
+  }, [uid, messages, saved]);
 
   return null;
 }

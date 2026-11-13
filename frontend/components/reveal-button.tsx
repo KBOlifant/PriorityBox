@@ -21,6 +21,10 @@ interface Common {
   label: string;
   tone?: keyof typeof TONES;
   className?: string;
+  /** Greyed out and not clickable (buttons only). */
+  disabled?: boolean;
+  /** Explains why, shown as a tooltip. */
+  title?: string;
 }
 interface AsButton extends Common {
   onClick: () => void;
@@ -39,7 +43,7 @@ interface AsLink extends Common {
  * Renders a link when given `href`, otherwise a button.
  */
 export function RevealButton(props: AsButton | AsLink) {
-  const { icon, label, tone = "neutral", className = "" } = props;
+  const { icon, label, tone = "neutral", className = "", disabled = false, title } = props;
   const [show, setShow] = useState(false);
 
   const shared = {
@@ -49,7 +53,10 @@ export function RevealButton(props: AsButton | AsLink) {
     onBlur: () => setShow(false),
     whileTap: { scale: 0.96 },
     "aria-label": label,
-    className: `flex h-9 shrink-0 cursor-pointer items-center rounded-lg px-[0.6rem] text-[13px] font-medium transition-colors ${TONES[tone]} ${className}`,
+    title,
+    className: `flex h-9 shrink-0 items-center rounded-lg px-[0.6rem] text-[13px] font-medium transition-colors ${TONES[tone]} ${className} ${
+      disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"
+    }`,
   };
 
   const content = (
@@ -86,7 +93,13 @@ export function RevealButton(props: AsButton | AsLink) {
     );
   }
   return (
-    <motion.button {...shared} type="button" onClick={props.onClick}>
+    <motion.button
+      {...shared}
+      whileTap={disabled ? undefined : shared.whileTap}
+      type="button"
+      disabled={disabled}
+      onClick={props.onClick}
+    >
       {content}
     </motion.button>
   );

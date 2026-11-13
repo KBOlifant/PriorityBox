@@ -28,3 +28,12 @@ export async function safely<T>(label: string, fn: () => Promise<T>): Promise<T 
     return null;
   }
 }
+
+/**
+ * Starts a write and returns at once. Firestore applies it on this device
+ * immediately and sends it when it can, so offline writes aren't lost, but its
+ * promise only settles once the server answers, which may be much later.
+ */
+export function inBackground(label: string, promise: Promise<unknown>): void {
+  promise.catch((err) => console.warn(`[storage] ${label} failed`, err));
+}

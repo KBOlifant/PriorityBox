@@ -2,7 +2,8 @@ import { actions, getManual, type ManualEdit } from "./store";
 import * as store from "@/services/firestore";
 import type { ManualEntry, ManualEntryDoc } from "@/services/firestore/manualEntries";
 import { estimateProgress } from "@/services/groq/progress";
-import { safely, withTimeout } from "@/services/safely";
+import { isOnline } from "./online";
+import { inBackground, safely } from "@/services/safely";
 
 /** What the user types into the manual entry form. */
 export interface ManualInput {
@@ -14,13 +15,19 @@ export interface ManualInput {
   remarks: string;
 }
 
+/** Shows what is kept on this device straight away, then brings it up to date from the server if it can. */
 export async function loadManual(uid: string) {
+  actions.setManual(await store.listManualEntriesCached(uid));
   const list = await safely("load manual entries", () => store.listManualEntries(uid));
   if (list) actions.setManual(list);
 }
 
-/** The AI decides the progress meter. If it can't, the entry is still saved and can be re-rated by editing. */
+/**
+ * The AI decides the progress meter. Without a connection, or if it can't, the
+ * entry is still saved and can be re-rated by editing it later.
+ */
 export async function rate(input: ManualInput) {
+  if (!isOnline()) return { stage: "Not rated", percent: 0, rated: false };
   try {
     return { ...(await estimateProgress(input)), rated: true };
   } catch {
@@ -39,7 +46,9 @@ export async function addManualEntry(uid: string, input: ManualInput): Promise<{
     completedAt: 0,
     createdMs: Date.now(),
   };
-  const id = await withTimeout(store.createManualEntry(uid, doc), 10_000);
+  // Shown at once and written in the background: offline, Firestore queues it until the connection returns.
+  const id = store.newManualId(uid);
+  inBackground("create manual entry", store.createManualEntry(uid, id, doc));
   actions.setManual([{ id, ...doc }, ...getManual()]);
   return { rated: rating.rated };
 }
@@ -68,16 +77,16 @@ export async function editManualEntry(
     percent: keep ? existing.percent : rating.percent,
   };
 
-  await withTimeout(store.updateManualEntry(uid, id, patch), 10_000);
+  inBackground("update manual entry", store.updateManualEntry(uid, id, patch));
   actions.setManual(getManual().map((e): ManualEntry => (e.id === id ? { ...e, ...patch } : e)));
   return { rated: rating.rated };
 }
 
-export async function deleteManualEntry(uid: string, id: string) {
+export function deleteManualEntry(uid: string, id: string) {
   actions.setManual(getManual().filter((e) => e.id !== id));
-  await safely("delete manual entry", () => store.deleteManualEntry(uid, id));
+  inBackground("delete manual entry", store.deleteManualEntry(uid, id));
   // Its stored AI summary and follow-up draft belong to it alone, so they go too.
-  await safely("delete stored AI responses", () => store.deleteAiResponse(uid, `manual:${id}`));
+  inBackground("delete stored AI responses", store.deleteAiResponse(uid, `manual:${id}`));
 }
 
 /**
@@ -96,7 +105,7 @@ export function createEditSink(uid: string) {
       patch: merged,
       timer: setTimeout(() => {
         pending.delete(id);
-        void safely("save manual edit", () => store.updateManualEntry(uid, id, merged));
+        inBackground("save manual edit", store.updateManualEntry(uid, id, merged));
       }, 600),
     });
   };

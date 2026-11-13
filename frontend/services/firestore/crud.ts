@@ -6,6 +6,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  getDocsFromCache,
   onSnapshot,
   query,
   serverTimestamp,
@@ -67,6 +68,24 @@ export async function list<T extends DocumentData>(
   const snap = await getDocs(query(collection(db, path), ...constraints));
   return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Stored<T>);
 }
+
+/**
+ * Like `list`, but reads only the copy kept on this device: instant, and works
+ * offline. Empty when nothing has been cached yet.
+ */
+export async function listFromCache<T extends DocumentData>(
+  path: string,
+): Promise<Stored<T>[]> {
+  try {
+    const snap = await getDocsFromCache(collection(db, path));
+    return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as Stored<T>);
+  } catch {
+    return [];
+  }
+}
+
+/** A fresh document id, so a document can be shown before the server has confirmed it. */
+export const newId = (path: string) => doc(collection(db, path)).id;
 
 /** Update fields on an existing document. Fails if the document doesn't exist. */
 export async function update<T extends DocumentData>(

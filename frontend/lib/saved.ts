@@ -3,7 +3,9 @@ import { actions, getSaved } from "./store";
 import { formatEventDate } from "@/services/mail/classifyParse";
 import * as store from "@/services/firestore";
 import { savedDocId, type SavedRef } from "@/services/firestore/savedEmails";
-import { safely, withTimeout } from "@/services/safely";
+import { inBackground, safely } from "@/services/safely";
+import { hasSavedBody, removeSavedBody, storeSavedBody } from "@/services/savedBodies";
+import { isOnline } from "./online";
 import { rate, type ManualInput } from "./manual";
 import type { Message } from "./types";
 
@@ -19,9 +21,32 @@ export function missingAutoSaves(messages: Message[], saved: SavedRef[]): Messag
   );
 }
 
+/**
+ * Shows the saved emails kept on this device straight away, then brings them up
+ * to date from the server if it can be reached. They don't depend on a mailbox
+ * being connected: a saved email stays until the user removes it.
+ */
 export async function loadSaved(uid: string) {
+  const cached = await store.listSavedEmailsCached(uid);
+  // Auto-save waits until the list is complete, so it can't re-add or overwrite anything; a
+  // device copy counts as complete only when the server can't be asked.
+  if (cached.length) actions.setSaved(cached, !isOnline());
   const list = await safely("load saved emails", () => store.listSavedEmails(uid));
   if (list) actions.setSaved(list);
+}
+
+/** Keeps a copy of the email's text on this device so it can be read without the inbox. */
+export function keepBody(uid: string, m: Message) {
+  if (m.body) storeSavedBody(uid, savedDocId(m.id), { body: m.body, day: m.day, time: m.time });
+}
+
+/** Saved emails whose message is loaded right now but whose text isn't kept yet (saved before this existed). */
+export function missingBodies(uid: string, messages: Message[], saved: SavedRef[]): Message[] {
+  const live = new Map(messages.map((m) => [savedDocId(m.id), m]));
+  return saved
+    .filter((s) => !s.removed && !hasSavedBody(uid, s.id))
+    .map((s) => live.get(s.id))
+    .filter((m): m is Message => !!m?.body);
 }
 
 function refFor(m: Message, auto: boolean): SavedRef {
@@ -48,20 +73,22 @@ function refFor(m: Message, auto: boolean): SavedRef {
 }
 
 /** Saves a reference (sender, subject and where to open it) and shows it straight away. */
-export async function saveMessage(uid: string, m: Message, auto = false) {
+export function saveMessage(uid: string, m: Message, auto = false) {
   if (!isSavable(m)) return;
   const ref = refFor(m, auto);
   actions.upsertSaved(ref);
+  keepBody(uid, m);
   const { id, ...doc } = ref;
   void id;
-  await safely("save email reference", () => store.saveEmailRef(uid, doc));
+  inBackground("save email reference", store.saveEmailRef(uid, doc));
 }
 
-export async function unsaveMessage(uid: string, messageId: string) {
+export function unsaveMessage(uid: string, messageId: string) {
   const ref = getSaved().find((s) => s.id === savedDocId(messageId));
   if (!ref) return;
   actions.upsertSaved({ ...ref, removed: true });
-  await safely("remove email reference", () => store.removeEmailRef(uid, ref.messageId));
+  removeSavedBody(uid, ref.id);
+  inBackground("remove email reference", store.removeEmailRef(uid, ref.messageId));
 }
 
 /**
@@ -91,13 +118,13 @@ export async function editSavedEntry(
     percent: keep ? existing.percent : rating.percent,
   };
 
-  await withTimeout(store.updateSavedEmail(uid, existing.messageId, patch), 10_000);
+  inBackground("update saved email", store.updateSavedEmail(uid, existing.messageId, patch));
   actions.upsertSaved({ ...existing, ...patch });
   return { rated: rating.rated };
 }
 
 /** Quick edits made straight on the card (priority). Shown at once, saved in the background. */
-export async function updateSavedFields(
+export function updateSavedFields(
   uid: string,
   id: string,
   patch: Partial<Pick<SavedRef, "priority">>,
@@ -105,7 +132,7 @@ export async function updateSavedFields(
   const existing = getSaved().find((s) => s.id === id);
   if (!existing) return;
   actions.upsertSaved({ ...existing, ...patch });
-  await safely("save saved-email edit", () => store.updateSavedEmail(uid, existing.messageId, patch));
+  inBackground("save saved-email edit", store.updateSavedEmail(uid, existing.messageId, patch));
 }
 
 /**

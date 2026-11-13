@@ -9,6 +9,7 @@ import {
 } from "react";
 import * as authService from "@/services/auth";
 import { clearMailCache } from "@/services/mailCache";
+import { clearSavedBodies } from "@/services/savedBodies";
 import type { User } from "@/services/auth";
 
 interface AuthValue {
@@ -56,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       resetPassword: authService.resetPassword,
       async signOut() {
         clearMailCache(user?.uid); // cached emails must not outlive the session
+        clearSavedBodies(user?.uid); // nor the copies kept of saved emails
         await authService.signOut();
       },
     }),

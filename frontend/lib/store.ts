@@ -219,7 +219,9 @@ export const actions = {
   },
   setAiFilter: (aiFilter: AiFilter | null) => update({ aiFilter }),
   setCacheHours: (cacheHours: number) => update({ cacheHours }, true),
-  setSaved: (saved: SavedRef[]) => update({ saved, savedLoaded: true }),
+  /** `complete` is false for a first look at the copy kept on this device, before the server has answered. */
+  setSaved: (saved: SavedRef[], complete = true) =>
+    update({ saved, savedLoaded: state.savedLoaded || complete }),
   /** Adds or replaces one saved reference (matched by id). */
   upsertSaved(ref: SavedRef) {
     update({ saved: [ref, ...state.saved.filter((s) => s.id !== ref.id)] });

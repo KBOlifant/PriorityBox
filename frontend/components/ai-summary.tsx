@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { RefreshCw, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { AI_OFFLINE_HINT, useOnline } from "@/lib/online";
 import type { Message } from "@/lib/types";
 import { loadSummary } from "@/services/aiResponses";
 
@@ -22,6 +23,7 @@ type SummaryState = "closed" | "loading" | "open";
  */
 export function useAiSummary(m: Message) {
   const { user } = useAuth();
+  const online = useOnline();
   const [state, setState] = useState<SummaryState>("closed");
   const [text, setText] = useState("");
   const [error, setError] = useState("");
@@ -36,8 +38,15 @@ export function useAiSummary(m: Message) {
     };
   }, []);
 
-  const label =
-    state === "closed" ? "Summarize with AI" : state === "loading" ? "Summarizing…" : "Hide AI summary";
+  // Summaries are written by the AI, so a closed one can't be opened without a connection.
+  const disabled = !online && state === "closed";
+  const label = disabled
+    ? "AI summary unavailable offline"
+    : state === "closed"
+      ? "Summarize with AI"
+      : state === "loading"
+        ? "Summarizing…"
+        : "Hide AI summary";
 
   async function load(refresh = false) {
     if (!user) {
@@ -60,6 +69,7 @@ export function useAiSummary(m: Message) {
   }
 
   function toggle() {
+    if (disabled) return;
     if (state !== "closed") {
       request.current += 1;
       return setState("closed");
@@ -68,7 +78,7 @@ export function useAiSummary(m: Message) {
     void load();
   }
 
-  return { state, text, error, label, toggle, load };
+  return { state, text, error, label, toggle, load, offline: !online, disabled, hint: disabled ? AI_OFFLINE_HINT : undefined };
 }
 
 export type AiSummary = ReturnType<typeof useAiSummary>;
@@ -83,7 +93,7 @@ export function AiSummaryPanel({ summary }: { summary: AiSummary }) {
             <Sparkles className="size-3.5" />
             AI summary
           </p>
-          {summary.state === "open" && !summary.error && (
+          {summary.state === "open" && !summary.error && !summary.offline && (
             <button
               type="button"
               onClick={() => void summary.load(true)}

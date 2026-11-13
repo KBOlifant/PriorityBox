@@ -122,6 +122,22 @@ Edits made on a card (priority, remarks, complete) are written to the entry
 itself (`lib/manual.ts`), not kept as browser-side overrides. Unlike connected
 mail, these entries are stored in full, because the user wrote them.
 
+### Offline and disconnected use
+
+- Firestore keeps a copy of the user's data on the device (`services/firebase.ts`).
+  Reads for manual entries and saved emails show that copy first, then refresh from
+  the server (`listManualEntriesCached`, `listSavedEmailsCached`). Writes don't wait for
+  the server (`inBackground` in `services/safely.ts`): they show at once and Firestore
+  sends them when the connection returns.
+- Manual mode therefore works with no connection. Only the AI parts are switched off
+  (`lib/online.ts`): the AI bar, summaries, follow-up drafts and the progress meter,
+  which stays "Not rated" until the entry is edited online.
+- Disconnecting an inbox never removes saved emails. When an email is saved its text
+  is also kept on this device only (`services/savedBodies.ts`, localStorage, never in
+  Firestore), so "Read email" works without the inbox. Those copies go when the email
+  is removed from Saved or the user signs out. Emails saved before this existed get
+  their copy the next time they are loaded or read.
+
 ### Paging
 
 `services/mail/pager.ts` merges all connected accounts newest-first and hands

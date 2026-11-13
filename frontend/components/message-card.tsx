@@ -217,6 +217,8 @@ export function MessageCard({
           tone={needsAttention(m) ? "alert" : "soft"}
           icon={<Sparkles className="size-3.5 shrink-0" />}
           label={ai.label}
+          disabled={ai.disabled}
+          title={ai.hint}
           onClick={ai.toggle}
         />
 

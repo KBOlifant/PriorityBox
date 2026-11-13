@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, ListChecks, Loader2, Sparkles, X } from "lucide-react";
+import { AI_OFFLINE_HINT, useOnline } from "@/lib/online";
 import { actions, useStore } from "@/lib/store";
 import type { Priority } from "@/lib/types";
 import { evaluateInbox } from "@/services/groq/evaluate";
@@ -20,6 +21,7 @@ interface Outcome {
 /** Free-text instructions to the AI: find emails, or re-mark what counts as urgent. */
 export function AiBar() {
   const { messages, rules } = useStore();
+  const online = useOnline();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -59,7 +61,7 @@ export function AiBar() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const instruction = text.trim();
-    if (!instruction || busy) return;
+    if (!instruction || busy || !online) return;
     if (!messages.length) {
       setError("There are no messages to work with yet.");
       return;
@@ -108,8 +110,11 @@ export function AiBar() {
           id="ai-bar"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          disabled={busy}
-          placeholder="Ask AI: find invoices, or mark deadlines urgent"
+          disabled={busy || !online}
+          title={online ? undefined : AI_OFFLINE_HINT}
+          placeholder={
+            online ? "Ask AI: find invoices, or mark deadlines urgent" : "AI is unavailable offline"
+          }
           className="h-10 w-full rounded-xl border border-accent-line bg-accent-soft/50 pl-11 pr-[4.5rem] text-[13px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent-text/60 focus:ring-2 focus:ring-accent/30 disabled:opacity-70"
         />
         <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-1">

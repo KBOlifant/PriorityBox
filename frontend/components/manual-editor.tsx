@@ -7,6 +7,7 @@ import { Loader2, Sparkles, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { addManualEntry, editManualEntry, type ManualInput } from "@/lib/manual";
 import { editSavedEntry } from "@/lib/saved";
+import { isOnline, useOnline } from "@/lib/online";
 import { actions, useStore } from "@/lib/store";
 
 const EMPTY: ManualInput = { activity: "", eventDate: "", progressNote: "", remarks: "" };
@@ -57,6 +58,7 @@ function EditorDialog({
   context?: string;
 }) {
   const { user } = useAuth();
+  const online = useOnline();
   const [form, setForm] = useState<ManualInput>({
     activity: initial.activity,
     eventDate: initial.eventDate,
@@ -109,9 +111,13 @@ function EditorDialog({
         : await addManualEntry(user.uid, input);
       if (rated) return close();
       // Saved, but the AI could not set the meter: say so instead of closing silently.
-      setNotice("Saved. The AI couldn’t rate the progress just now. Edit the entry later to try again.");
+      setNotice(
+        isOnline()
+          ? "Saved. The AI couldn’t rate the progress just now. Edit the entry later to try again."
+          : "Saved on this device. You’re offline, so the AI will only rate the progress when you edit this entry once you’re back online.",
+      );
     } catch {
-      setError("Couldn’t save this entry. Check your connection and try again.");
+      setError("Couldn’t save this entry. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -209,7 +215,9 @@ function EditorDialog({
             </label>
             <p className="mb-2 flex items-center gap-1.5 text-[12px] text-muted">
               <Sparkles className="size-3 text-accent-text" />
-              Describe how it is going. The AI sets the progress meter from this.
+              {online
+                ? "Describe how it is going. The AI sets the progress meter from this."
+                : "Describe how it is going. You’re offline, so the AI can’t set the meter until you’re back online."}
             </p>
             <textarea
               id="m-progress"
