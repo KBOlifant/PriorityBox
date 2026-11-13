@@ -151,11 +151,11 @@ export function MessageCard({
             {m.preview}
           </p>
           {m.event && (
-            <span className="mt-3 inline-flex h-8 items-center gap-2 rounded-lg border border-line bg-canvas/50 px-3 text-[12px] text-body">
-              <Calendar className="size-3.5 text-muted" />
-              {m.event.label}
-              <span className="size-[3px] rounded-full bg-muted" />
-              {m.event.date}
+            <span className="mt-3 inline-flex min-h-8 max-w-full items-center gap-2 rounded-lg border border-line bg-canvas/50 px-3 py-1 text-[12px] leading-snug text-body">
+              <Calendar className="size-3.5 shrink-0 text-muted" />
+              <span className="min-w-0">{m.event.label}</span>
+              <span className="size-[3px] shrink-0 rounded-full bg-muted" />
+              <span className="min-w-0">{m.event.date}</span>
             </span>
           )}
         </div>

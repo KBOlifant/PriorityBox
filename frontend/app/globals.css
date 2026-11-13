@@ -37,6 +37,11 @@ body {
   background: #083f7d99;
 }
 
+/* Long unbroken text (URLs, tracking links) must wrap inside a card, not spill out of it. */
+article {
+  overflow-wrap: anywhere;
+}
+
 /* Quiet dark scrollbars to match the wireframes */
 * {
   scrollbar-width: thin;
