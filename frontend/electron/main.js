@@ -67,7 +67,7 @@ function createWindow(url) {
     minWidth: 900,
     minHeight: 600,
     autoHideMenuBar: true,
-    icon: path.join(__dirname, "..", "assets", "PriorityBoxLogo.png"),
+    icon: path.join(__dirname, "..", "assets", "PriorityBox", "PriorityBoxLogo256.png"),
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
 
@@ -109,7 +109,7 @@ function setupAutoUpdates() {
   });
   autoUpdater.on("error", (e) => console.error("Auto-update error:", e));
   autoUpdater.checkForUpdates().catch(() => {});
-  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 4 * 60 * 60 * 1000);
+  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 1 * 60 * 1000);
 }
 
 ipcMain.handle("google-auth", (_e, opts) => googleAuth(opts));

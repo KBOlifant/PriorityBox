@@ -1,5 +1,5 @@
 import Image from "next/image";
-import logo from "@/assets/PriorityBoxLogo.png";
+import logo from "@/assets/PriorityBox/PriorityBoxLogo256.png";
 
 export function LogoMark({ size = 32 }: { size?: number }) {
   return (

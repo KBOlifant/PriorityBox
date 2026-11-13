@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "prioritybox",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -48,10 +48,12 @@
     "files": [
       "electron/**",
       "out/**",
+      "assets/PriorityBox/PriorityBoxLogo256.png",
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/PriorityBox/PriorityBoxLogo256.png"
     },
     "publish": [
       {
