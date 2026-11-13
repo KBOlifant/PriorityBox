@@ -37,6 +37,13 @@ export function MessageCard({
   const [summary, setSummary] = useState<SummaryState>("closed");
   const [summaryText, setSummaryText] = useState("");
   const [summaryError, setSummaryError] = useState("");
+  const [summaryHover, setSummaryHover] = useState(false);
+  const summaryLabel =
+    summary === "closed"
+      ? "Summarize with AI"
+      : summary === "loading"
+        ? "Summarizing…"
+        : "Hide AI summary";
   // Bumped on every toggle so a response that arrives after the panel was
   // closed (or the card unmounted) is ignored.
   const request = useRef(0);
@@ -87,6 +94,24 @@ export function MessageCard({
       whileHover={{ scale: 1.02 }}
       className="flex flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-[#323236]"
     >
+      <div className="-mt-2 mb-2 -ml-2 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => downloadMessage(m)}
+          aria-label="Download message"
+          className="grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.04] hover:text-ink"
+        >
+          <Download className="size-4" />
+        </button>
+        <a
+          href={mailtoHref(m)}
+          aria-label="Reply in email app"
+          className="grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.04] hover:text-ink"
+        >
+          <ExternalLink className="size-4" />
+        </a>
+      </div>
+
       <div
         role="button"
         tabIndex={0}
@@ -140,15 +165,29 @@ export function MessageCard({
         <motion.button
           type="button"
           onClick={toggleSummary}
+          onHoverStart={() => setSummaryHover(true)}
+          onHoverEnd={() => setSummaryHover(false)}
+          onFocus={() => setSummaryHover(true)}
+          onBlur={() => setSummaryHover(false)}
           whileTap={{ scale: 0.97 }}
-          className="flex h-9 items-center gap-2 rounded-lg border border-accent-line bg-accent-soft px-3.5 text-[13px] font-medium text-accent-text transition-colors hover:border-accent/60"
+          aria-label={summaryLabel}
+          className="flex h-9 hover:cursor-pointer items-center rounded-lg border border-accent-line bg-accent-soft px-3 text-[13px] font-medium text-accent-text transition-colors hover:border-accent/60"
         >
-          <Sparkles className="size-3.5" />
-          {summary === "closed"
-            ? "Summarize with AI"
-            : summary === "loading"
-              ? "Summarizing…"
-              : "Hide AI summary"}
+          <Sparkles className="size-3.5 shrink-0 " />
+          <AnimatePresence initial={false}>
+            {summaryHover && (
+              <motion.span
+                key="label"
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: "auto", opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="overflow-hidden whitespace-nowrap "
+              >
+                <span className="block pl-2">{summaryLabel}</span>
+              </motion.span>
+            )}
+          </AnimatePresence>
         </motion.button>
 
         <label className="relative">
@@ -180,27 +219,12 @@ export function MessageCard({
               type="button"
               onClick={() => actions.complete(m.id)}
               whileTap={{ scale: 0.97 }}
-              className="flex h-9 items-center gap-2 rounded-lg bg-accent px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover"
+              className="flex h-9 items-center gap-2 rounded-lg bg-accent px-3.5 text-[13px] font-semibold text-accent-text transition-colors hover:bg-accent-hover hover:cursor-pointer"
             >
               <Check className="size-4" />
               Complete
             </motion.button>
           )}
-          <button
-            type="button"
-            onClick={() => downloadMessage(m)}
-            aria-label="Download message"
-            className="grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.04] hover:text-ink"
-          >
-            <Download className="size-4" />
-          </button>
-          <a
-            href={mailtoHref(m)}
-            aria-label="Reply in email app"
-            className="grid size-9 place-items-center rounded-lg text-muted transition-colors hover:bg-white/[0.04] hover:text-ink"
-          >
-            <ExternalLink className="size-4" />
-          </a>
         </div>
       </div>
 

@@ -22,9 +22,9 @@ export function DetailsPanel({ message: m }: { message: Message }) {
           <p className={eyebrow}>Progress</p>
           <div className="mt-2 flex items-baseline justify-between text-[14px]">
             <span className="font-medium">{stage}</span>
-            <span className="text-[11px] tabular-nums text-muted">
+            {/* <span className="text-[11px] tabular-nums text-muted">
               {percent}%
-            </span>
+            </span> */}
           </div>
           <div
             className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#2b2b2f]"
