@@ -4,16 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Calendar,
-  Check,
   ChevronDown,
   Download,
   ExternalLink,
+  RefreshCw,
   Sparkles,
 } from "lucide-react";
 import { PriorityBadge } from "./priority-badge";
 import { DetailsPanel } from "./details-panel";
+import { useAuth } from "@/lib/auth";
 import { actions } from "@/lib/store";
-import { summarizeEmail } from "@/services/groq";
+import { loadSummary } from "@/services/aiResponses";
 import { downloadMessage, mailtoHref } from "@/lib/actions";
 import type { Message, Priority } from "@/lib/types";
 
@@ -34,6 +35,7 @@ export function MessageCard({
   index: number;
 }) {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
   const [summary, setSummary] = useState<SummaryState>("closed");
   const [summaryText, setSummaryText] = useState("");
   const [summaryError, setSummaryError] = useState("");
@@ -54,15 +56,19 @@ export function MessageCard({
       return setSummary("closed");
     }
     if (summaryText) return setSummary("open");
-    void loadSummary();
+    void fetchSummary();
   }
 
-  async function loadSummary() {
+  async function fetchSummary(refresh = false) {
+    if (!user) {
+      setSummaryError("Please sign in again.");
+      return setSummary("open");
+    }
     const id = ++request.current;
     setSummaryError("");
     setSummary("loading");
     try {
-      const text = await summarizeEmail(m);
+      const text = await loadSummary(user.uid, m, { refresh });
       if (id !== request.current) return;
       setSummaryText(text);
       setSummary("open");
@@ -84,7 +90,6 @@ export function MessageCard({
         ease: [0.22, 1, 0.36, 1],
         delay: Math.min(index, 6) * 0.04,
       }}
-      whileHover={{ scale: 1.02 }}
       className="flex flex-col rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-[#323236]"
     >
       <div
@@ -169,23 +174,7 @@ export function MessageCard({
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-body" />
         </label>
 
-        <div className="ml-auto flex items-center gap-1">
-          {m.archived ? (
-            <span className="flex h-9 items-center gap-1.5 px-2 text-[13px] font-medium text-muted">
-              <Check className="size-4" />
-              Completed
-            </span>
-          ) : (
-            <motion.button
-              type="button"
-              onClick={() => actions.complete(m.id)}
-              whileTap={{ scale: 0.97 }}
-              className="flex h-9 items-center gap-2 rounded-lg bg-accent px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-accent-hover"
-            >
-              <Check className="size-4" />
-              Complete
-            </motion.button>
-          )}
+        <div className="ml-auto flex items-center">
           <button
             type="button"
             onClick={() => downloadMessage(m)}
@@ -207,11 +196,23 @@ export function MessageCard({
       <AnimatePresence initial={false}>
         {summary !== "closed" && (
           <motion.div key="summary" {...panelMotion} className="overflow-hidden">
-            <div className="mt-4 rounded-xl border border-accent-line bg-accent-soft p-4">
-              <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-text">
-                <Sparkles className="size-3.5" />
-                AI summary
-              </p>
+            <div className="mt-4 rounded-xl border border-accent-line bg-[#2a1411] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-accent-text">
+                  <Sparkles className="size-3.5" />
+                  AI summary
+                </p>
+                {summary === "open" && !summaryError && (
+                  <button
+                    type="button"
+                    onClick={() => void fetchSummary(true)}
+                    className="flex items-center gap-1.5 text-[11.5px] text-muted transition-colors hover:text-accent-text"
+                  >
+                    <RefreshCw className="size-3" />
+                    Regenerate
+                  </button>
+                )}
+              </div>
               {summary === "loading" ? (
                 <div className="mt-3 space-y-2" aria-live="polite">
                   <div className="h-3 w-full animate-pulse rounded bg-accent-line/70" />
@@ -223,7 +224,7 @@ export function MessageCard({
                   {summaryError}{" "}
                   <button
                     type="button"
-                    onClick={() => void loadSummary()}
+                    onClick={() => void fetchSummary()}
                     className="font-medium underline underline-offset-2"
                   >
                     Try again

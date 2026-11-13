@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -85,6 +86,20 @@ export async function upsert<T extends DocumentData>(
   await setDoc(
     doc(db, path, id),
     { ...data, updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+}
+
+/** Deletes individual fields from a document, leaving the rest in place. */
+export async function clearFields(
+  path: string,
+  id: string,
+  fields: string[],
+): Promise<void> {
+  const cleared = Object.fromEntries(fields.map((f) => [f, deleteField()]));
+  await setDoc(
+    doc(db, path, id),
+    { ...cleared, updatedAt: serverTimestamp() },
     { merge: true },
   );
 }

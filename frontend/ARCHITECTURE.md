@@ -33,7 +33,10 @@ Rules:
 | `services/firestore/crud.ts` | Generic create / get / list / update / upsert / remove / watch for any collection path. Adds `createdAt` / `updatedAt` |
 | `services/firestore/users.ts` | `users/{uid}` profile CRUD |
 | `services/firestore/messageState.ts` | `users/{uid}/messageState/{messageId}` CRUD for the user's own edits (priority, remarks) |
+| `services/firestore/aiResponses.ts` | `users/{uid}/aiResponses/{messageId}` CRUD for the saved summary and follow-up draft |
 | `services/groq/` | `summarizeEmail` and `draftReply` using `openai/gpt-oss-120b` |
+| `services/cache/` | Redis-shaped async cache (`get` / `set` with TTL / `del`). Currently a `sessionStorage` placeholder; swap `cache` for a Redis client once Electron is in place |
+| `services/aiResponses.ts` | Combines the three above. Reads go cache → Firestore → Groq; writes go to the cache and Firestore. Firestore waits are capped at 4s so AI keeps working if storage is unreachable |
 
 Adding a new kind of data: add a typed module next to `users.ts` that wraps
 `crud.ts`, and export it from `services/firestore/index.ts`.
