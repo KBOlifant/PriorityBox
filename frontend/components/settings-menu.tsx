@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, Settings } from "lucide-react";
+import { Bell, Check, ChevronDown, Settings } from "lucide-react";
+import { Switch, ThemeToggle } from "./theme-toggle";
 import { useAuth } from "@/lib/auth";
 import { actions, useStore } from "@/lib/store";
 import { clearMailCache, loadMailCache } from "@/services/mailCache";
@@ -21,6 +22,21 @@ export function SettingsMenu() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [cleared, setCleared] = useState(false);
+  // Only read once on the client; the switch lives inside the closed-by-default panel, so SSR never renders it.
+  const [notify, setNotify] = useState(() => {
+    try {
+      return localStorage.getItem("priority-notifications") === "on";
+    } catch {
+      return false;
+    }
+  });
+  function toggleNotify() {
+    const next = !notify;
+    setNotify(next);
+    try {
+      localStorage.setItem("priority-notifications", next ? "on" : "off");
+    } catch {}
+  }
   const root = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,7 +90,17 @@ export function SettingsMenu() {
             aria-label="Settings"
             className="absolute right-0 top-full z-30 mt-2 w-[300px] rounded-xl border border-line bg-surface p-4 text-[13px] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]"
           >
-            <label htmlFor="cache-hours" className="block font-medium">
+            <div className="space-y-3 border-b border-line pb-4">
+              <ThemeToggle />
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-2 font-medium">
+                  <Bell className="size-4 text-muted" strokeWidth={1.7} />
+                  Notifications
+                </span>
+                <Switch on={notify} label="Notifications" onClick={toggleNotify} />
+              </div>
+            </div>
+            <label htmlFor="cache-hours" className="mt-4 block font-medium">
               Keep emails on this device for
             </label>
             <div className="relative mt-2">

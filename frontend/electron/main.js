@@ -1,5 +1,6 @@
 const { app, BrowserWindow, shell, dialog, ipcMain } = require("electron");
 const { googleAuth } = require("./google-auth");
+const redisCache = require("./redis-cache");
 const { autoUpdater } = require("electron-updater");
 const http = require("http");
 const fs = require("fs");
@@ -113,6 +114,8 @@ function setupAutoUpdates() {
 }
 
 ipcMain.handle("google-auth", (_e, opts) => googleAuth(opts));
+redisCache.register(ipcMain);
+app.on("will-quit", () => redisCache.close());
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

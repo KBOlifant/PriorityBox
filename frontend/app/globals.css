@@ -19,6 +19,7 @@
   --color-accent-hover: var(--c-accent-hover);
   --color-accent-text: var(--c-accent-text);
   --color-accent-soft: var(--c-accent-soft);
+  --color-read: var(--c-read);
   --color-accent-faint: var(--c-accent-faint);
   --color-accent-line: var(--c-accent-line);
 
@@ -56,6 +57,8 @@
   --c-accent-hover: #0a4f9c;
   --c-accent-text: #cce8f5;
   --c-accent-soft: #041d3a;
+  /* Background of a card that has been read: a neutral lift in dark, a faint blue in light. */
+  --c-read: #101113;
   --c-accent-faint: #0a1626;
   --c-accent-line: #083f7d;
   --c-alert: #c21e29;
@@ -90,6 +93,7 @@
   --c-accent-hover: #0a4f9c;
   --c-accent-text: #083f7d;
   --c-accent-soft: #e2edf9;
+  --c-read: #eef4fb;
   --c-accent-faint: #eef4fb;
   --c-accent-line: #7ea6d6;
   --c-alert: #c21e29;

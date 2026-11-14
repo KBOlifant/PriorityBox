@@ -6,6 +6,13 @@ const STYLES: Record<Priority, { label: string; dot: string }> = {
   Low: { label: "Event", dot: "bg-[#6fa08a]" },
 };
 
+/** The thick right-hand edge of a card, coloured to match the badge dot. */
+export const PRIORITY_EDGE: Record<Priority, string> = {
+  High: "border-r-4 border-r-[#C21E29]",
+  Medium: "border-r-4 border-r-[#e5b45f]",
+  Low: "border-r-4 border-r-[#6fa08a]",
+};
+
 export function PriorityBadge({ priority }: { priority: Priority }) {
   const s = STYLES[priority];
   return (

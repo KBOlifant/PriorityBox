@@ -3,6 +3,9 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Inbox } from "lucide-react";
 import { MessageCard } from "./message-card";
+import { MessageSkeletons } from "./message-skeleton";
+import { PAGE_SIZE } from "@/lib/mail";
+import { useLoadingPlaceholders } from "@/lib/selectors";
 import { useStore } from "@/lib/store";
 import type { Message } from "@/lib/types";
 
@@ -15,6 +18,10 @@ export function MessageGrid({
 }) {
   const { saved } = useStore();
   const savedIds = new Set(saved.filter((s) => !s.removed).map((s) => s.messageId));
+  const loading = useLoadingPlaceholders();
+
+  // A page is PAGE_SIZE emails: show that many cards while they are on their way.
+  if (messages.length === 0 && loading) return <MessageSkeletons count={PAGE_SIZE} />;
 
   if (messages.length === 0) {
     return (
@@ -37,7 +44,7 @@ export function MessageGrid({
   }
 
   return (
-    <div className="grid items-stretch gap-3 lg:grid-cols-2">
+    <div className="grid items-stretch gap-3">
       <AnimatePresence mode="popLayout" initial>
         {messages.map((m, i) => (
           <MessageCard key={m.id} message={m} index={i} saved={savedIds.has(m.id)} />

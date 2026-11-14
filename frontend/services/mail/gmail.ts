@@ -102,6 +102,12 @@ declare global {
         prompt?: string;
         loginHint?: string;
       }): Promise<{ access_token: string; expires_in: number }>;
+      /** Redis, reached through Electron's main process (see electron/redis-cache.js). */
+      cache: {
+        getMany(keys: string[]): Promise<(string | null)[]>;
+        set(key: string, json: string, ttlSeconds?: number): Promise<void>;
+        del(keys: string[]): Promise<void>;
+      };
     };
   }
 }

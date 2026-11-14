@@ -6,9 +6,10 @@ import { BookOpen, Calendar, ChevronDown, ExternalLink, Pencil, Reply, Sparkles,
 import { AiSummaryPanel, useAiSummary } from "./ai-summary";
 import { FollowUp } from "./details-panel";
 import { EmailModal } from "./email-modal";
-import { PriorityBadge } from "./priority-badge";
+import { PriorityBadge, PRIORITY_EDGE } from "./priority-badge";
 import { RevealButton } from "./reveal-button";
 import { useAuth } from "@/lib/auth";
+import { markRead, useIsRead } from "@/lib/read";
 import { COLORS, hash, initials, toMessage } from "@/lib/mail-map";
 import { savedToMessage, unsaveMessage, updateSavedFields } from "@/lib/saved";
 import { actions, useStore } from "@/lib/store";
@@ -32,6 +33,8 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [followUp, setFollowUp] = useState(false);
+  const [open, setOpen] = useState(false);
+  const isRead = useIsRead(item.id);
   // The copy of the email kept on this device when it was saved, so it can be read without the inbox.
   const [kept, setKept] = useState<SavedBody | null>(() =>
     user ? loadSavedBody(user.uid, item.id) : null,
@@ -86,11 +89,63 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 6) * 0.04 }}
-      className="flex flex-col rounded-2xl border border-line bg-surface p-5"
+      className={`group relative flex flex-col rounded-xl p-3 shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_EDGE[item.priority]} ${isRead ? "bg-read" : "bg-surface"}`}
     >
-      <div className="flex gap-3.5">
+      <div
+        className={`absolute right-2 top-2 z-10 flex items-center gap-0.5 rounded-lg border border-line bg-surface p-0.5 shadow-sm transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
+          open ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <RevealButton
+          icon={<BookOpen className="size-4 shrink-0" />}
+          label={busy ? "Loading…" : "Read email"}
+          onClick={() => void read()}
+        />
+        {link && (
+          <RevealButton
+            icon={<ExternalLink className="size-4 shrink-0" />}
+            label={`Open in ${provider.label.replace("Google ", "").replace("Microsoft ", "")}`}
+            href={link}
+            external
+          />
+        )}
+        <RevealButton
+          tone={followUp ? "accent" : "neutral"}
+          icon={<Reply className="size-4 shrink-0" />}
+          label={followUp ? "Hide follow-up" : "Write follow-up"}
+          onClick={() => setFollowUp((v) => !v)}
+        />
+        <RevealButton
+          icon={<Pencil className="size-4 shrink-0" />}
+          label="Edit"
+          onClick={() => actions.openManualEditor(item.id, true)}
+        />
+        <RevealButton
+          icon={<Trash2 className="size-4 shrink-0" />}
+          label="Remove"
+          onClick={() => user && void unsaveMessage(user.uid, item.messageId)}
+        />
+      </div>
+
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        onClick={() => {
+          if (!open) markRead(item.id);
+          setOpen(!open);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            if (!open) markRead(item.id);
+            setOpen(!open);
+          }
+        }}
+        className="flex cursor-pointer gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+      >
         <span
-          className="grid size-10 shrink-0 place-items-center rounded-xl text-[13px] font-semibold text-white/95"
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-[12px] font-semibold text-white/95"
           style={{ background: COLORS[hash(item.sender) % COLORS.length] }}
           aria-hidden
         >
@@ -99,23 +154,23 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[12.5px] text-muted">
-              <span className="text-[14.5px] font-semibold text-ink">{item.sender}</span>
+              <span className={`text-[14.5px] text-ink ${isRead ? "font-normal" : "font-semibold"}`}>{item.sender}</span>
               <span>Saved {timeAgo(item.savedAt)}</span>
             </p>
-            <PriorityBadge priority={item.priority} />
+            <span className="transition-opacity group-hover:opacity-0"><PriorityBadge priority={item.priority} /></span>
           </div>
           <h3
             title={item.activity}
-            className="mt-1.5 line-clamp-2 text-[16px] font-semibold leading-snug"
+            className={`mt-0.5 text-[14.5px] leading-snug ${isRead ? "font-normal" : "font-semibold"} ${open ? "line-clamp-2" : "line-clamp-1"}`}
           >
             {item.activity}
           </h3>
-          {edited && (
+          {open && edited && (
             <p className="mt-1 truncate text-[12px] text-muted" title={item.subject}>
               Email: {item.subject}
             </p>
           )}
-          {item.progressNote && (
+          {open && item.progressNote && (
             <p className="mt-1.5 line-clamp-3 text-[13.5px] leading-6 text-body">
               {item.progressNote}
             </p>
@@ -129,7 +184,7 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
             </span>
           )}
 
-          <div className="mt-3.5">
+          {open && <div className="mt-3.5">
             <div className="flex items-baseline justify-between text-[12px]">
               <span className="font-medium">{item.stage}</span>
               <span className="tabular-nums text-muted">{item.percent}%</span>
@@ -149,36 +204,23 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
                 transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
               />
             </div>
-          </div>
+          </div>}
 
-          {item.remarks && (
+          {open && item.remarks && (
             <p className="mt-3 line-clamp-2 text-[12.5px] leading-5 text-muted">
               <span className="font-medium text-body">Remarks: </span>
               {item.remarks}
             </p>
           )}
-          <p className="mt-3 text-[12px] text-muted">
+          {open && <p className="mt-3 text-[12px] text-muted">
             {provider.label} · {item.account}
             {item.auto ? " · saved automatically" : ""}
-          </p>
+          </p>}
         </div>
       </div>
 
-      <div className="mt-5 flex items-center gap-1 border-t border-line pt-4">
-        <RevealButton
-          tone="soft"
-          icon={<BookOpen className="size-4 shrink-0" />}
-          label={busy ? "Loading…" : "Read email"}
-          onClick={() => void read()}
-        />
-        {link && (
-          <RevealButton
-            icon={<ExternalLink className="size-4 shrink-0" />}
-            label={`Open in ${provider.label.replace("Google ", "").replace("Microsoft ", "")}`}
-            href={link}
-            external
-          />
-        )}
+      {open && (
+        <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
         <RevealButton
           // Red only for emails that need attention, like everywhere else.
           tone={item.priority === "High" ? "alert" : "soft"}
@@ -188,19 +230,7 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
           title={ai.hint}
           onClick={ai.toggle}
         />
-        <RevealButton
-          tone={followUp ? "accent" : "neutral"}
-          icon={<Reply className="size-4 shrink-0" />}
-          label={followUp ? "Hide follow-up" : "Write follow-up"}
-          onClick={() => setFollowUp((v) => !v)}
-        />
-        <RevealButton
-          icon={<Pencil className="size-4 shrink-0" />}
-          label="Edit"
-          onClick={() => actions.openManualEditor(item.id, true)}
-        />
-
-        <label className="relative ml-2">
+        <label className="relative">
           <span className="sr-only">Priority for {item.activity}</span>
           <select
             value={item.priority}
@@ -217,15 +247,8 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
           </select>
           <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-body" />
         </label>
-
-        <div className="ml-auto">
-          <RevealButton
-            icon={<Trash2 className="size-4 shrink-0" />}
-            label="Remove"
-            onClick={() => user && void unsaveMessage(user.uid, item.messageId)}
-          />
         </div>
-      </div>
+      )}
 
       {error && (
         <p role="alert" className="mt-3 text-[12.5px] leading-5 text-danger">
@@ -234,10 +257,10 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
       )}
 
       <AnimatePresence initial={false}>
-        {ai.state !== "closed" && <AiSummaryPanel key="summary" summary={ai} />}
+        {open && ai.state !== "closed" && <AiSummaryPanel key="summary" summary={ai} />}
       </AnimatePresence>
 
-      {followUp && (
+      {open && followUp && (
         <div className="mt-4 overflow-hidden rounded-xl border border-line bg-raised">
           <FollowUp message={message} />
         </div>

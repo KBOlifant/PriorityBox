@@ -40,13 +40,28 @@ const onViewedPage = (m: Message, page: number) =>
   m.page === undefined || m.page === page;
 
 /**
+ * True while the first page of a connected inbox is loading and there is
+ * nothing real to show yet: the screens show placeholder cards instead of the
+ * sample data or a stale page. A saved copy on this device counts as real data
+ * (it sets `loadedPages`), so it is shown straight away.
+ */
+export function useLoadingPlaceholders() {
+  const { mode, sync, usingSample } = useStore();
+  return mode === "mail" && sync.status === "loading" && (usingSample || sync.loadedPages === 0);
+}
+
+const NO_MESSAGES = { all: [] as Message[], visible: [] as Message[], filtering: false };
+
+/**
  * Messages for a screen. `all` is everything the screen could show (used for
  * its headline count); `visible` also applies the priority filter and search.
  * An AI search result replaces paging: it shows matches from every loaded page.
  */
 export function usePage(screen: PageKey) {
   const { messages, filter, query, aiFilter, sync } = useStore();
+  const loading = useLoadingPlaceholders();
   return useMemo(() => {
+    if (loading) return NO_MESSAGES;
     const ids = aiFilter ? new Set(aiFilter.ids) : null;
     const inView = (m: Message) =>
       ids ? ids.has(m.id) : onViewedPage(m, sync.page);
@@ -56,7 +71,7 @@ export function usePage(screen: PageKey) {
       (m) => matchesFilter(m, filter) && matchesQuery(m, q),
     );
     return { all, visible, filtering: filter !== "All" || q !== "" || !!ids };
-  }, [messages, filter, query, aiFilter, sync.page, screen]);
+  }, [messages, filter, query, aiFilter, sync.page, screen, loading]);
 }
 
 /** Sidebar counts for the page being viewed. */
