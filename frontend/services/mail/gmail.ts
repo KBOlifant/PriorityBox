@@ -138,7 +138,7 @@ async function requestDesktopToken(
         ? "Gmail access was declined."
         : msg.includes("timeout")
           ? "Sign-in was cancelled."
-          : "Google sign-in failed. Try again.",
+          : `Google sign-in failed${msg ? ` (${msg.replace(/^Error invoking remote method '[^']*': (Error: )?/, "")})` : ""}. Try again.`,
     );
   }
 }

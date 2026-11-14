@@ -6,12 +6,24 @@ const STYLES: Record<Priority, { label: string; dot: string }> = {
   Low: { label: "Event", dot: "bg-[#6fa08a]" },
 };
 
-/** The thick right-hand edge of a card, coloured to match the badge dot. */
-export const PRIORITY_EDGE: Record<Priority, string> = {
-  High: "border-r-4 border-r-[#C21E29]",
-  Medium: "border-r-4 border-r-[#e5b45f]",
-  Low: "border-r-4 border-r-[#6fa08a]",
+/** Classes a card adds to leave room (32px lip + 12px gutter) for the priority lip. */
+export const PRIORITY_LIP_PAD = "pr-11";
+
+const LIP_COLOR: Record<Priority, string> = {
+  High: "bg-[#C21E29]",
+  Medium: "bg-[#e5b45f]",
+  Low: "bg-[#6fa08a]",
 };
+
+/** A 32px coloured lip down the right-hand side of a card, matching the badge dot. */
+export function PriorityLip({ priority }: { priority: Priority }) {
+  return (
+    <span
+      aria-hidden
+      className={`pointer-events-none absolute inset-y-0 right-0 w-4 rounded-r-xl ${LIP_COLOR[priority]}`}
+    />
+  );
+}
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
   const s = STYLES[priority];

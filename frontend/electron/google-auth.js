@@ -70,7 +70,8 @@ async function googleAuth({ clientId, clientSecret, scope, prompt, loginHint }) 
     body,
   });
   const json = await res.json();
-  if (!res.ok || !json.access_token) throw new Error(json.error || "failed");
+  if (!res.ok || !json.access_token)
+    throw new Error(`${json.error || "failed"}${json.error_description ? `: ${json.error_description}` : ""}`);
   return { access_token: json.access_token, expires_in: json.expires_in };
 }
 

@@ -25,6 +25,13 @@ jobs:
       - run: npm ci
       # electron-updater only updates when the version increases.
       - run: npm version 0.1.${{ github.run_number }} --no-git-tag-version
+      # electron-builder uploads the installer and its blockmap in parallel, and
+      # each one creates the release if it can't find it, which produced two
+      # releases (one with only the blockmap). Create it once up front.
+      - run: gh release create v0.1.${{ github.run_number }} --draft --title 0.1.${{ github.run_number }} --notes "" --repo ${{ github.repository }}
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm run release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

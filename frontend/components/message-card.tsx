@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { AiSummaryPanel, panelMotion, useAiSummary } from "./ai-summary";
-import { PriorityBadge, PRIORITY_EDGE } from "./priority-badge";
+import { PriorityBadge, PriorityLip, PRIORITY_LIP_PAD } from "./priority-badge";
 import { EmailModal } from "./email-modal";
 import { messageLink } from "@/services/mail/parse";
 import { RevealButton } from "./reveal-button";
@@ -82,10 +82,11 @@ export function MessageCard({
         ease: [0.22, 1, 0.36, 1],
         delay: Math.min(index, 6) * 0.04,
       }}
-      className={`group relative flex flex-col rounded-xl p-3 shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_EDGE[m.priority]} ${read ? "bg-read" : "bg-surface"}`}
+      className={`group relative flex flex-col rounded-xl p-3 shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_LIP_PAD} ${read ? "bg-read" : "bg-surface"}`}
     >
+      {m.priority.toString() !== "Low" && (<PriorityLip priority={m.priority} />)}
       <div
-        className={`absolute right-2 top-2 z-10 flex items-center gap-0.5 rounded-lg border border-line bg-surface p-0.5 shadow-sm transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
+        className={`absolute right-11 top-2 z-10 flex items-center gap-0.5 rounded-lg border border-line bg-surface p-0.5 shadow-sm transition-opacity focus-within:opacity-100 group-hover:opacity-100 ${
           open ? "opacity-100" : "opacity-0"
         }`}
       >
