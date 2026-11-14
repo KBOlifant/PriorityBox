@@ -60,8 +60,7 @@
       {
         "provider": "github",
         "owner": "KBOlifant",
-        "repo": "PriorityBox",
-        "releaseType": "release" 
+        "repo": "PriorityBox"
       }
     ]
   }

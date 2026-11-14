@@ -40,3 +40,10 @@ jobs:
           NEXT_PUBLIC_DESKTOP_APP_GOOGLE_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_DESKTOP_APP_GOOGLE_CLIENT_ID }}
           NEXT_PUBLIC_DESKTOP_APP_GOOGLE_CLIENT_SECRET: ${{ secrets.NEXT_PUBLIC_DESKTOP_APP_GOOGLE_CLIENT_SECRET }}
           NEXT_PUBLIC_MICROSOFT_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_MICROSOFT_CLIENT_ID }}
+      # electron-builder uploads to a draft (uploading straight into a published
+      # release failed), and the updater can't see drafts, so publish it once the
+      # installer and latest.yml are attached.
+      - run: gh release edit v0.1.${{ github.run_number }} --draft=false --repo ${{ github.repository }}
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
