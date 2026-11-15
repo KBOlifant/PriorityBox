@@ -2,14 +2,16 @@
 
 import { Flag } from "lucide-react";
 import { AiBar } from "@/components/ai-bar";
+import { AiResults } from "@/components/ai-results";
 import { MessageGrid } from "@/components/message-grid";
 import { PageHeader, SectionHeading } from "@/components/page-header";
 import { useProfile } from "@/lib/auth";
-import { needsAttention, usePage } from "@/lib/selectors";
+import { needsAttention, useAiResults, usePage } from "@/lib/selectors";
 
 export default function PriorityInboxPage() {
   const { firstName } = useProfile();
   const { all, visible, filtering } = usePage("priority");
+  const results = useAiResults();
   const attention = visible.filter(needsAttention);
   const rest = visible.filter((m) => !needsAttention(m));
   const attentionTotal = all.filter(needsAttention).length;
@@ -26,7 +28,10 @@ export default function PriorityInboxPage() {
         <AiBar />
       </div>
 
-      {visible.length === 0 ? (
+      {/* An AI result replaces the inbox until the user goes back to it. */}
+      {results ? (
+        <AiResults {...results} />
+      ) : visible.length === 0 ? (
         <div className="mt-10">
           <MessageGrid messages={[]} filtering={filtering} />
         </div>

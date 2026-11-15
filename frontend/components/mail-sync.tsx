@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, Loader2, Sparkles } from "lucide-react";
 import { useAuth } from "@/lib/auth";
@@ -81,11 +82,14 @@ export function MailBanner() {
 /** Shows the active AI search and lets the user clear it. */
 export function AiFilterChip() {
   const { aiFilter } = useStore();
+  const pathname = usePathname();
   const n = aiFilter?.ids.length ?? 0;
+  // The Priority inbox shows the result in place of the inbox, with its own header.
+  const show = aiFilter && pathname !== "/";
 
   return (
     <AnimatePresence initial={false}>
-      {aiFilter && (
+      {show && (
         <motion.div
           key="ai-filter"
           initial={{ opacity: 0, height: 0 }}

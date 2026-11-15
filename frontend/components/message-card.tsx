@@ -20,6 +20,7 @@ import { PriorityBadge, PriorityLip, PRIORITY_LIP_PAD } from "./priority-badge";
 import { EmailModal } from "./email-modal";
 import { messageLink } from "@/services/mail/parse";
 import { RevealButton } from "./reveal-button";
+import { SelectBox, useIsSelected } from "./select-box";
 import { DetailsPanel } from "./details-panel";
 import { useAuth } from "@/lib/auth";
 import { markRead, useIsRead } from "@/lib/read";
@@ -45,6 +46,7 @@ export function MessageCard({
   const manual = m.provider === "manual";
   const [open, setOpen] = useState(false);
   const read = useIsRead(m.id);
+  const selected = useIsSelected(m.id);
   // "Read full email" opens the whole message in a dialog; the button only exists once the card is expanded.
   const [reading, setReading] = useState(false);
   const closeReader = useCallback(() => setReading(false), []);
@@ -82,7 +84,9 @@ export function MessageCard({
         ease: [0.22, 1, 0.36, 1],
         delay: Math.min(index, 6) * 0.04,
       }}
-      className={`group relative flex min-w-0 flex-col rounded-xl ${open ? "p-3" : "p-2"} shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_LIP_PAD} ${read ? "bg-read" : "bg-surface"}`}
+      className={`group relative flex min-w-0 flex-col rounded-xl ${open ? "p-3" : "p-2"} shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_LIP_PAD} ${
+        selected ? "bg-accent-soft/60 ring-1 ring-accent-line" : read ? "bg-read" : "bg-surface"
+      }`}
     >
       {m.priority.toString() !== "Low" && (<PriorityLip priority={m.priority} />)}
       <div
@@ -160,6 +164,8 @@ export function MessageCard({
         )}
       </div>
 
+      <div className={`flex min-w-0 gap-1 ${open ? "items-start" : "items-center"}`}>
+      <SelectBox id={m.id} label={m.subject} />
       <div
         role="button"
         tabIndex={0}
@@ -172,7 +178,7 @@ export function MessageCard({
             toggleOpen();
           }
         }}
-        className={`flex cursor-pointer gap-3 rounded-lg outline-none ${open ? "" : "items-center"} focus-visible:ring-2 focus-visible:ring-accent/40`}
+        className={`flex min-w-0 flex-1 cursor-pointer gap-3 rounded-lg outline-none ${open ? "" : "items-center"} focus-visible:ring-2 focus-visible:ring-accent/40`}
       >
         <span
           className="grid size-8 shrink-0 place-items-center rounded-lg text-[12px] font-semibold text-white/95"
@@ -243,6 +249,8 @@ export function MessageCard({
             </span>
           )}
         </div>
+      </div>
+
       </div>
 
       {/* Only an expanded card offers the whole email, and only if there is more to read. */}

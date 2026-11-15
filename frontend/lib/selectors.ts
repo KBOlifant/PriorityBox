@@ -75,6 +75,26 @@ export function usePage(screen: PageKey) {
   }, [messages, filter, query, aiFilter, sync.page, screen, loading]);
 }
 
+/**
+ * The emails of the active AI result, newest first, from every page (older found
+ * emails and completed ones included), with the priority filter and search applied.
+ * Null when there is no AI result.
+ */
+export function useAiResults() {
+  const { messages, filter, query, aiFilter } = useStore();
+  return useMemo(() => {
+    if (!aiFilter) return null;
+    const byId = new Map(messages.map((m) => [m.id, m]));
+    const all = aiFilter.ids
+      .map((id) => byId.get(id))
+      .filter((m): m is Message => !!m)
+      .sort((a, b) => (b.receivedAt ?? 0) - (a.receivedAt ?? 0));
+    const q = query.trim();
+    const visible = all.filter((m) => matchesFilter(m, filter) && matchesQuery(m, q));
+    return { all, visible, query: aiFilter.query };
+  }, [messages, filter, query, aiFilter]);
+}
+
 /** Sidebar counts for the page being viewed. */
 export function useCounts() {
   const { messages, sync, saved, folders } = useStore();

@@ -76,6 +76,8 @@ export interface State {
   foldersLoaded: boolean;
   /** Items of the folders that have been opened, by folder id. */
   folderItems: Record<string, FolderItemRef[]>;
+  /** Emails ticked with their checkbox, for grouping or re-marking several at once. */
+  selected: string[];
 }
 
 const MAX_RULES = 5;
@@ -112,6 +114,7 @@ let state: State = {
   folders: [],
   foldersLoaded: false,
   folderItems: {},
+  selected: [],
 };
 const serverState = state;
 
@@ -301,6 +304,25 @@ export const actions = {
     update({ folders, foldersLoaded: state.foldersLoaded || loaded }),
   setFolderItems: (folderId: string, items: FolderItemRef[]) =>
     update({ folderItems: { ...state.folderItems, [folderId]: items } }),
+  toggleSelected(id: string) {
+    update({
+      selected: state.selected.includes(id)
+        ? state.selected.filter((s) => s !== id)
+        : [...state.selected, id],
+    });
+  },
+  /** Ticks (or with `on` false, unticks) all of these at once. */
+  selectMany(ids: string[], on = true) {
+    const set = new Set(state.selected);
+    for (const id of ids) {
+      if (on) set.add(id);
+      else set.delete(id);
+    }
+    update({ selected: [...set] });
+  },
+  clearSelected: () => {
+    if (state.selected.length) update({ selected: [] });
+  },
 };
 
 /** The messages currently shown (with the user's edits), for non-React code. */

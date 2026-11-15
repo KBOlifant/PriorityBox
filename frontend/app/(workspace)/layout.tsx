@@ -9,6 +9,7 @@ import {
   SavedSync,
 } from "@/components/mail-sync";
 import { SearchScopeModal } from "@/components/search-scope-modal";
+import { SelectionBar } from "@/components/selection-bar";
 import { ManualEditor } from "@/components/manual-editor";
 import { Pagination } from "@/components/pagination";
 import { Sidebar } from "@/components/sidebar";
@@ -43,6 +44,7 @@ export default function WorkspaceLayout({
         <FolderSync />
         <ManualEditor />
         <SearchScopeModal />
+        <SelectionBar />
       </div>
     </AuthGate>
   );

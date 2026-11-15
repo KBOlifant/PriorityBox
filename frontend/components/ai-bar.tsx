@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, Check, FolderPlus, ListChecks, Loader2, Sparkles, X } from "lucide-react";
-import { useAuth } from "@/lib/auth";
-import { addToFolder, createFolder, isFolderable } from "@/lib/folders";
+import { ArrowUp, Check, ListChecks, Loader2, Sparkles, X } from "lucide-react";
+import { SaveToFolder } from "./save-to-folder";
 import { analyseFound } from "@/lib/mail";
 import { AI_OFFLINE_HINT, useOnline } from "@/lib/online";
 import { actions, getMessages, useStore } from "@/lib/store";
@@ -28,8 +26,7 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /** Free-text instructions to the AI: find emails, re-mark priority, group them into folders. */
 export function AiBar({ className = "" }: { className?: string }) {
-  const { messages, rules, mode, folders, usingSample } = useStore();
-  const { user } = useAuth();
+  const { messages, rules, mode, usingSample } = useStore();
   const online = useOnline();
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -50,27 +47,19 @@ export function AiBar({ className = "" }: { className?: string }) {
     setShowRules(false);
   }
 
+  // The panel sits in the page above the results, so clicking the results (ticking
+  // emails) must not close it: only the close button or Escape (with focus in the bar) do.
   useEffect(() => {
     if (!open) return;
-    const close = () => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || document.querySelector("[role=dialog]")) return;
+      if (!root.current?.contains(document.activeElement)) return;
       setError("");
       setOutcome(null);
       setShowRules(false);
     };
-    const onDown = (e: MouseEvent) => {
-      // Clicks in a dialog (the search-scope question) don't close the result.
-      if ((e.target as Element).closest?.("[role=dialog]")) return;
-      if (!root.current?.contains(e.target as Node)) close();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !document.querySelector("[role=dialog]")) close();
-    };
-    document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   /** Applies priority changes and remembers what they replaced, so they can be undone. */
@@ -208,7 +197,7 @@ export function AiBar({ className = "" }: { className?: string }) {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
             role={error ? "alert" : "status"}
-            className="absolute left-0 right-0 top-full z-30 mt-2 rounded-xl border border-line bg-surface p-4 text-[13px] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]"
+            className="relative mt-2 rounded-xl border border-line bg-surface p-4 text-[13px] shadow-sm shadow-black/10"
           >
             {!busy && (
               <button
@@ -226,14 +215,7 @@ export function AiBar({ className = "" }: { className?: string }) {
             {error && <p className="pr-6 text-danger">{error}</p>}
 
             {outcome && !busy && (
-              <OutcomePanel
-                steps={steps}
-                outcome={outcome}
-                folders={folders}
-                uid={user?.uid}
-                onChange={setOutcome}
-                apply={apply}
-              />
+              <OutcomePanel steps={steps} outcome={outcome} onChange={setOutcome} apply={apply} />
             )}
 
             {showRules && (
@@ -307,15 +289,11 @@ function WorkingPanel({ steps, current, startedAt }: { steps: string[]; current:
 function OutcomePanel({
   steps,
   outcome: o,
-  folders,
-  uid,
   onChange,
   apply,
 }: {
   steps: string[];
   outcome: Outcome;
-  folders: { id: string; name: string }[];
-  uid?: string;
   onChange: (o: Outcome) => void;
   apply: (changes: Record<string, Priority>) => Record<string, Priority>;
 }) {
@@ -397,91 +375,15 @@ function OutcomePanel({
         </div>
       )}
 
-      {o.show && o.show.length > 0 && uid && <SaveAsFolder outcome={o} folders={folders} uid={uid} />}
-    </div>
-  );
-}
-
-/** Saves the AI's result list as a new folder, or adds it to an existing one. */
-function SaveAsFolder({
-  outcome: o,
-  folders,
-  uid,
-}: {
-  outcome: Outcome;
-  folders: { id: string; name: string }[];
-  uid: string;
-}) {
-  const [name, setName] = useState(o.group ?? o.instruction.slice(0, 40));
-  const [target, setTarget] = useState("new");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState<{ id: string; name: string; added: number } | null>(null);
-
-  const ids = new Set(o.show);
-  const emails = getMessages().filter((m) => ids.has(m.id) && isFolderable(m));
-  if (!emails.length) return null;
-
-  async function save() {
-    setSaving(true);
-    try {
-      if (target === "new") {
-        const id = await createFolder(uid, name, o.instruction, emails);
-        if (id) setSaved({ id, name: name.trim() || "Grouped emails", added: emails.length });
-      } else {
-        const added = await addToFolder(uid, target, emails);
-        setSaved({ id: target, name: folders.find((f) => f.id === target)?.name ?? "folder", added });
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (saved) {
-    return (
-      <p className="mt-3 text-[12.5px] text-body">
-        {saved.added ? `Saved ${plural(saved.added, "email")} to` : "Already in"}{" "}
-        <Link href={`/grouped?folder=${saved.id}`} className="font-medium text-accent-text hover:underline">
-          {saved.name}
-        </Link>
-      </p>
-    );
-  }
-
-  return (
-    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-      <FolderPlus className="size-4 shrink-0 text-accent-text" />
-      {folders.length > 0 && (
-        <select
-          value={target}
-          onChange={(e) => setTarget(e.target.value)}
-          aria-label="Folder"
-          className="h-8 max-w-[9rem] rounded-lg border border-line bg-surface-2 px-2 text-[12.5px] text-body outline-none"
-        >
-          <option value="new">New folder</option>
-          {folders.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
+      {o.show && o.show.length > 0 && (
+        <div className="mt-3 border-t border-line pt-3">
+          <SaveToFolder
+            messages={getMessages().filter((m) => o.show!.includes(m.id))}
+            defaultName={o.group ?? o.instruction.slice(0, 40)}
+            instruction={o.instruction}
+          />
+        </div>
       )}
-      {target === "new" && (
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          aria-label="Folder name"
-          maxLength={60}
-          className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-surface-2 px-2.5 text-[12.5px] text-ink outline-none focus:border-accent-text/60"
-        />
-      )}
-      <button
-        type="button"
-        disabled={saving || (target === "new" && !name.trim())}
-        onClick={() => void save()}
-        className="h-8 shrink-0 rounded-lg bg-accent px-3 text-[12.5px] font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-60"
-      >
-        {saving ? "Saving…" : target === "new" ? "Save as folder" : "Add to folder"}
-      </button>
     </div>
   );
 }
