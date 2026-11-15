@@ -192,6 +192,14 @@ export function MessageCard({
               <span className={`text-ink ${read ? "font-normal" : "font-semibold"}`}>{m.subject}</span>
               {m.preview && <span className="text-muted"> – {m.preview}</span>}
             </p>
+            {m.found && (
+              <span
+                title="An older email the AI found by searching your inbox"
+                className="shrink-0 rounded-md bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-accent-text"
+              >
+                Older
+              </span>
+            )}
             <span className="shrink-0 text-[12px] text-muted">
               {m.day} · {m.time}
             </span>

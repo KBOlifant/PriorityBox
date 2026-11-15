@@ -1,5 +1,14 @@
 import { AuthGate } from "@/components/auth-gate";
-import { AiFilterChip, MailBanner, MailSync, ManualHint, ManualSync, SavedSync } from "@/components/mail-sync";
+import {
+  AiFilterChip,
+  FolderSync,
+  MailBanner,
+  MailSync,
+  ManualHint,
+  ManualSync,
+  SavedSync,
+} from "@/components/mail-sync";
+import { SearchScopeModal } from "@/components/search-scope-modal";
 import { ManualEditor } from "@/components/manual-editor";
 import { Pagination } from "@/components/pagination";
 import { Sidebar } from "@/components/sidebar";
@@ -31,7 +40,9 @@ export default function WorkspaceLayout({
         <MailSync />
         <SavedSync />
         <ManualSync />
+        <FolderSync />
         <ManualEditor />
+        <SearchScopeModal />
       </div>
     </AuthGate>
   );

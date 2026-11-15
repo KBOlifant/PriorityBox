@@ -33,7 +33,10 @@ Rules:
 | `services/firestore/crud.ts` | Generic create / get / list / update / upsert / remove / watch for any collection path. Adds `createdAt` / `updatedAt` |
 | `services/firestore/users.ts` | `users/{uid}` profile CRUD |
 | `services/firestore/messageState.ts` | `users/{uid}/messageState/{messageId}` CRUD for the user's own edits (priority, remarks) |
-| `services/groq/` | `summarizeEmail` and `draftReply` using `openai/gpt-oss-120b`; `evaluate.ts` interprets the AI bar (find emails, re-mark priority, remember urgency rules) |
+| `services/groq/` | `summarizeEmail` and `draftReply` using `openai/gpt-oss-120b`; `agent.ts` runs the AI bar as a multi-step tool agent (find, group, re-mark, remember urgency rules) |
+| `services/firestore/folders.ts` | "Grouped Emails": `users/{uid}/folders/{id}` and `…/items/{messageId}` (references only, no email text) |
+| `services/idb.ts`, `services/cache/` | On-device IndexedDB key-value store with expiry; the cache in front of Firestore reads and AI responses |
+| `services/mailStore.ts` | Emails and recent search results kept in IndexedDB so the mailbox APIs are called once per message |
 | `services/mail/` | Real inboxes behind one `MailProvider` interface: `gmail.ts` (Google Identity Services + Gmail API), `outlook.ts` (MSAL + Microsoft Graph), `parse.ts` (normalising messages), `classify.ts` (AI priority, dates and progress) |
 | `services/firestore/mailAccounts.ts` | Which accounts are connected: `users/{uid}/mailAccounts/{provider}` (address only, never tokens) |
 | `services/firestore/classifications.ts` | AI analysis per message: `users/{uid}/classifications/{messageId}` (no email text) |
@@ -148,18 +151,38 @@ a time, because Groq's free tier allows 8,000 tokens per minute.
 
 ### AI bar
 
-The input next to search sends a free-text instruction plus the newest 60 loaded
-messages (compact, short refs instead of ids) to Groq. The reply can show a set
-of matching emails (an "AI search" chip appears above the page, matches span
-every loaded page), re-mark priorities, and remember a standing "what counts as
-urgent" rule. Rules are kept in the browser and passed into the classifier for
-pages loaded later.
+The input next to search runs `services/groq/agent.ts`: Groq works through the
+inbox in up to 6 steps with tools, and the app carries them out:
+
+| Tool | What Groq gets back |
+| --- | --- |
+| `senders` / `pick_senders` | sender **names only**, then every email from the chosen senders |
+| `keyword` | local, typo-tolerant search (`lib/fuzzy.ts`, `lib/mail-index.ts`) with an ~80 char excerpt per hit |
+| `search_inbox` | searches **older inbox mail** on the server (Gmail `q`, Outlook `$search`); found emails are listed in the inbox after the loaded pages |
+| `list` / `read` | pool rows, or up to 8 email bodies (the only tool that sends whole emails) |
+| `drop` / `mark` / `show` / `remember` / `finish` | settle the result; `finish` may suggest a folder name |
+
+Token saving: each step is a fresh prompt built from a compact state (the
+instruction, the model's own ≤200-char notes, pool counts and only the last
+step's results); earlier steps are never resent and dropped emails never come
+back. The run stops at a token budget. Groq is told to fix the user's spelling
+before searching, and the local index also matches typos (edit distance with
+letter swaps, same first letter) and longer forms.
+
+If a server search would match more than ~3 pages, `SearchScopeModal` asks how
+far back to search, with estimated email counts and token use per range.
+More than 10 priority changes are confirmed before they apply; smaller ones can
+be undone. A result list can be saved as a folder ("Grouped Emails").
 
 Who an email is from is matched in code (`services/groq/peopleMatch.ts`), not
-by the model: the model only says which senders the user means, and the app
-matches names, addresses and companies against every loaded message. For
-"sender + topic" searches a second request judges the topic over just that
-sender's emails, so older pages are still covered.
+by the model, across names, addresses and companies.
+
+### Caching
+
+Everything cached lives in IndexedDB on the device (`services/idb.ts`) and is
+cleared on sign-out: Firestore classifications and accounts, AI summaries and
+drafts, fetched emails (3 days) and server search results (15 minutes). Folder
+emails are fetched by id when opened, then kept on the device.
 
 ### Setup
 

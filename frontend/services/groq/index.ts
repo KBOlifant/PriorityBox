@@ -44,8 +44,18 @@ export async function chat(
   system: string,
   user: string,
   maxTokens: number,
-  { json = false }: { json?: boolean } = {},
+  options: { json?: boolean } = {},
 ): Promise<string> {
+  return (await chatWithUsage(system, user, maxTokens, options)).text;
+}
+
+/** Like `chat`, plus how many tokens the call used (prompt + completion), for budgeting. */
+export async function chatWithUsage(
+  system: string,
+  user: string,
+  maxTokens: number,
+  { json = false }: { json?: boolean } = {},
+): Promise<{ text: string; tokens: number }> {
   // NOTE: the key ships in the client bundle. Fine for development; before
   // distributing the Electron app, move this call into the main process.
   const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
@@ -95,10 +105,13 @@ export async function chat(
 
   const data = (await res.json()) as {
     choices?: { message?: { content?: string } }[];
+    usage?: { total_tokens?: number };
   };
   const text = data.choices?.[0]?.message?.content?.trim();
   if (!text) throw new GroqError("The AI returned an empty response.");
-  return text;
+  // Without a usage report, estimate ~4 characters per token.
+  const tokens = data.usage?.total_tokens ?? Math.ceil((system.length + user.length + text.length) / 4);
+  return { text, tokens };
 }
 
 export function summarizeEmail(m: Message): Promise<string> {
