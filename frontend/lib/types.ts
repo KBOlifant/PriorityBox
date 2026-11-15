@@ -44,4 +44,8 @@ export interface Message {
   page?: number;
   /** The connected account (email address) a real message belongs to. */
   account?: string;
+  /** Epoch ms received, for real mail. */
+  receivedAt?: number;
+  /** An older email the AI found by searching the inbox, shown after the loaded pages. */
+  found?: boolean;
 }

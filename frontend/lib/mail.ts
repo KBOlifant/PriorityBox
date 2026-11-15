@@ -9,6 +9,7 @@ import {
   type ProviderId,
 } from "@/services/mail";
 import { clearMailCache, loadMailCache, saveMailCache, type CachedMail } from "@/services/mailCache";
+import { clearStoredMail } from "@/services/mailStore";
 import { classifyMail } from "@/services/mail/classify";
 import type { AccountStatus, Classification, RawMail } from "@/services/mail/types";
 import { safely } from "@/services/safely";
@@ -25,6 +26,8 @@ interface Session {
   analysis: Record<string, Classification>;
   /** False while only showing a saved copy; only live sessions refresh the cache. */
   live: boolean;
+  /** Older inbox emails found by an AI search, shown on pages after the fetched ones. */
+  found: RawMail[];
 }
 
 let session: Session | null = null;
@@ -102,6 +105,7 @@ function showCached(uid: string, c: CachedMail, statuses: AccountStatus[]) {
     pages: c.pages,
     analysis: c.analysis,
     live: false,
+    found: session?.found ?? [],
   };
   render(session);
   actions.setSync({
@@ -127,7 +131,8 @@ function persist(s: Session) {
 
 /** Starts paging through `pager`. Exported so the paging flow can be exercised with fake sources. */
 export async function startSession(uid: string, pager: MailPager, statuses: AccountStatus[]) {
-  session = { uid, pager, statuses, pages: [], analysis: {}, live: true };
+  // Older emails found earlier in this session stay listed across a refresh of the inbox.
+  session = { uid, pager, statuses, pages: [], analysis: {}, live: true, found: session?.found ?? [] };
   actions.setSync({ accounts: statuses, page: 1, loadedPages: 0, hasMore: true });
   await fetchNextPage(session);
 }
@@ -161,7 +166,7 @@ async function fetchNextPage(s: Session) {
       cachedAt: undefined,
       accounts: s.statuses,
       page: Math.max(1, s.pages.length),
-      loadedPages: s.pages.length,
+      loadedPages: totalPages(s),
       hasMore: s.pager.hasMore,
       status: pendingAnalyses > 0 || mail.length ? "classifying" : "ready",
     });
@@ -194,12 +199,56 @@ async function analyse(s: Session, mail: RawMail[]) {
   actions.setSync({ status: pendingAnalyses > 0 ? "classifying" : "ready", error });
 }
 
+/** Fetched pages plus the pages of older emails found by AI search. */
+function totalPages(s: Session) {
+  return s.pages.length + Math.ceil(s.found.length / PAGE_SIZE);
+}
+
 function render(s: Session) {
-  actions.setSource(
-    s.pages.flatMap((page, i) =>
-      page.map((m) => toMessage(m, s.analysis[m.id], i + 1)),
+  // A found email that normal paging has since reached is shown once, on its real page.
+  const paged = new Set(s.pages.flatMap((p) => p.map((m) => m.id)));
+  s.found = s.found.filter((m) => !paged.has(m.id)).sort((a, b) => b.receivedAt - a.receivedAt);
+  const after = s.pages.length;
+  actions.setSource([
+    ...s.pages.flatMap((page, i) => page.map((m) => toMessage(m, s.analysis[m.id], i + 1))),
+    ...s.found.map((m, j) =>
+      toMessage(m, s.analysis[m.id], after + 1 + Math.floor(j / PAGE_SIZE), true),
     ),
-  );
+  ]);
+}
+
+/** The signed-in user and the accounts that can be searched right now, for the AI tools. */
+export function searchContext(): { uid: string; accounts: AccountStatus[] } | null {
+  const s = session;
+  if (!s) return null;
+  return { uid: s.uid, accounts: s.statuses.filter((a) => a.status === "ok") };
+}
+
+/**
+ * Adds older inbox emails (found by an AI search) to the inbox list, after the
+ * fetched pages. Returns how many were new. Their AI analysis is started
+ * separately with `analyseFound`, so it doesn't compete with the search for tokens.
+ */
+export function addFoundMail(mail: RawMail[]): number {
+  const s = session;
+  if (!s || !mail.length) return 0;
+  const known = new Set([...s.pages.flat(), ...s.found].map((m) => m.id));
+  const fresh = mail.filter((m) => !known.has(m.id));
+  if (!fresh.length) return 0;
+  s.found.push(...fresh);
+  render(s);
+  actions.setSync({ loadedPages: totalPages(s) });
+  return fresh.length;
+}
+
+/** Queues the AI analysis (priority, dates, progress) for found emails that don't have one yet. */
+export function analyseFound() {
+  const s = session;
+  if (!s) return;
+  const pending = s.found.filter((m) => !s.analysis[m.id]);
+  if (!pending.length) return;
+  actions.setSync({ status: "classifying" });
+  queueAnalysis(s, pending);
 }
 
 /**
@@ -209,11 +258,11 @@ function render(s: Session) {
 export async function goToPage(n: number) {
   const s = session;
   if (!s || running || n < 1) return;
-  if (n <= s.pages.length) {
+  if (n <= totalPages(s)) {
     actions.setSync({ page: n });
     return;
   }
-  if (n === s.pages.length + 1 && s.pager.hasMore) {
+  if (n === totalPages(s) + 1 && s.pager.hasMore) {
     await fetchNextPage(s);
     // The new page is the one the user asked for.
     if (session === s) actions.setSync({ page: s.pages.length });
@@ -230,6 +279,8 @@ export async function connectProvider(uid: string, id: ProviderId) {
 export async function disconnectProvider(uid: string, id: ProviderId, email: string) {
   await providers[id].disconnect(email).catch(() => undefined);
   clearMailCache(uid); // it may hold this account's mail
+  await clearStoredMail(uid);
+  if (session) session.found = session.found.filter((m) => !(m.provider === id && m.account === email));
   await safely("remove mail account", () => store.removeMailAccount(uid, id));
   await syncMail(uid);
 }
