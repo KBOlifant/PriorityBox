@@ -21,7 +21,7 @@ export function MessageSkeleton() {
 /** One page's worth of placeholders, announced once to screen readers rather than per card. */
 export function MessageSkeletons({ count }: { count: number }) {
   return (
-    <div role="status" aria-label="Loading your emails" className="grid items-stretch gap-3">
+    <div role="status" aria-label="Loading your emails" className="grid grid-cols-1 items-stretch gap-3">
       {Array.from({ length: count }, (_, i) => (
         <MessageSkeleton key={i} />
       ))}

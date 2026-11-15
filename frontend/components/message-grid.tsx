@@ -44,7 +44,7 @@ export function MessageGrid({
   }
 
   return (
-    <div className="grid items-stretch gap-3">
+    <div className="grid grid-cols-1 items-stretch gap-3">
       <AnimatePresence mode="popLayout" initial>
         {messages.map((m, i) => (
           <MessageCard key={m.id} message={m} index={i} saved={savedIds.has(m.id)} />

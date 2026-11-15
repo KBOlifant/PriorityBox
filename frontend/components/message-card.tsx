@@ -82,7 +82,7 @@ export function MessageCard({
         ease: [0.22, 1, 0.36, 1],
         delay: Math.min(index, 6) * 0.04,
       }}
-      className={`group relative flex flex-col rounded-xl p-3 shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_LIP_PAD} ${read ? "bg-read" : "bg-surface"}`}
+      className={`group relative flex min-w-0 flex-col rounded-xl ${open ? "p-3" : "p-2"} shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_LIP_PAD} ${read ? "bg-read" : "bg-surface"}`}
     >
       {m.priority.toString() !== "Low" && (<PriorityLip priority={m.priority} />)}
       <div
@@ -172,7 +172,7 @@ export function MessageCard({
             toggleOpen();
           }
         }}
-        className="flex cursor-pointer gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+        className={`flex cursor-pointer gap-3 rounded-lg outline-none ${open ? "" : "items-center"} focus-visible:ring-2 focus-visible:ring-accent/40`}
       >
         <span
           className="grid size-8 shrink-0 place-items-center rounded-lg text-[12px] font-semibold text-white/95"
@@ -180,7 +180,27 @@ export function MessageCard({
         >
           {m.initials}
         </span>
-        <div className="min-w-0 flex-1">
+        {!open && (
+          // Collapsed: one Gmail-style line — sender, subject – preview, time, priority.
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span
+              className={`w-36 shrink-0 truncate text-[14px] text-ink ${read ? "font-normal" : "font-semibold"}`}
+            >
+              {m.sender}
+            </span>
+            <p className="min-w-0 flex-1 truncate text-[13px] text-body">
+              <span className={`text-ink ${read ? "font-normal" : "font-semibold"}`}>{m.subject}</span>
+              {m.preview && <span className="text-muted"> – {m.preview}</span>}
+            </p>
+            <span className="shrink-0 text-[12px] text-muted">
+              {m.day} · {m.time}
+            </span>
+            <span className="shrink-0 transition-opacity group-hover:opacity-0">
+              <PriorityBadge priority={m.priority} />
+            </span>
+          </div>
+        )}
+        <div className={`min-w-0 flex-1 ${open ? "" : "hidden"}`}>
           <div className="flex items-start justify-between gap-3">
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[12.5px] text-muted">
               <span className={`text-[14.5px] text-ink ${read ? "font-normal" : "font-semibold"}`}>

@@ -51,7 +51,7 @@ export default function SavedPage() {
               </p>
             </motion.div>
           ) : (
-            <div className="grid items-stretch gap-3">
+            <div className="grid grid-cols-1 items-stretch gap-3">
               <AnimatePresence mode="popLayout" initial>
                 {visible.map((s, i) => (
                   <SavedCard key={s.id} item={s} index={i} />
