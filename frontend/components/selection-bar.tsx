@@ -16,6 +16,8 @@ export function SelectionBar() {
   const pathname = usePathname();
   const [grouping, setGrouping] = useState(false);
   const [round, setRound] = useState(0);
+  /** The last priority change made from this bar, so it can be undone. */
+  const [last, setLast] = useState<{ priority: Priority; count: number; undo: Record<string, Priority> } | null>(null);
 
   // A selection belongs to the screen it was made on.
   useEffect(() => {
@@ -36,6 +38,18 @@ export function SelectionBar() {
   function clear() {
     actions.clearSelected();
     setGrouping(false);
+    setLast(null);
+  }
+
+  function mark(priority: Priority) {
+    const changed = picked.filter((m) => m.priority !== priority);
+    if (!changed.length) return;
+    setLast({
+      priority,
+      count: changed.length,
+      undo: Object.fromEntries(changed.map((m) => [m.id, m.priority])),
+    });
+    actions.setPriorities(Object.fromEntries(changed.map((m) => [m.id, priority])));
   }
 
   return (
@@ -59,7 +73,7 @@ export function SelectionBar() {
                 <button
                   key={p}
                   type="button"
-                  onClick={() => actions.setPriorities(Object.fromEntries(picked.map((m) => [m.id, p])))}
+                  onClick={() => mark(p)}
                   className="h-8 rounded-lg border border-line px-2.5 text-[12.5px] font-medium text-body transition-colors hover:border-line-strong hover:text-ink"
                 >
                   {p}
@@ -90,6 +104,22 @@ export function SelectionBar() {
                 <X className="size-4" />
               </button>
             </div>
+
+            {last && (
+              <p className="mt-2 flex items-center gap-2 px-2 text-[12.5px] text-body" aria-live="polite">
+                Marked {last.count} {last.count === 1 ? "email" : "emails"} {last.priority}
+                <button
+                  type="button"
+                  onClick={() => {
+                    actions.setPriorities(last.undo);
+                    setLast(null);
+                  }}
+                  className="font-medium text-accent-text hover:underline"
+                >
+                  Undo
+                </button>
+              </p>
+            )}
 
             {grouping && (
               <div className="mt-2.5 border-t border-line px-1 pt-2.5">

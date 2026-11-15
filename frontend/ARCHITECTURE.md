@@ -171,8 +171,21 @@ letter swaps, same first letter) and longer forms.
 
 If a server search would match more than ~3 pages, `SearchScopeModal` asks how
 far back to search, with estimated email counts and token use per range.
-More than 10 priority changes are confirmed before they apply; smaller ones can
-be undone. A result list can be saved as a folder ("Grouped Emails").
+A result list can be saved as a folder ("Grouped Emails").
+
+Guard rails:
+
+- The mailbox scopes are read-only (`gmail.readonly`, `Mail.Read`); the AI can't
+  send, delete, archive or move mail.
+- The AI only proposes changes. Priority changes (with a preview of the affected
+  emails) and new urgency rules wait for **Apply** / **Remember**, and applied
+  changes can be undone. Showing a result list is the only thing it does alone.
+- Email text in the agent's prompts is fenced in `<email>` tags (look-alike tags
+  inside emails are stripped first), and the prompt says that text, sender names
+  and subjects are untrusted and must never be followed.
+- Replies are validated against a whitelist of tools and the refs the app handed
+  out; per-run limits on turns, tokens, emails read and emails fetched.
+- Custom memory (Settings) can only be written by the user.
 
 Who an email is from is matched in code (`services/groq/peopleMatch.ts`), not
 by the model, across names, addresses and companies.

@@ -10,13 +10,17 @@ import { actions, getMessages, useStore } from "@/lib/store";
 import type { Priority } from "@/lib/types";
 import { runAgent, type AgentResult } from "@/services/groq/agent";
 
-/** More priority changes than this are confirmed before they are applied. */
-const CONFIRM_OVER = 10;
-
+/**
+ * Guard rail: the AI never changes anything by itself. Priority changes and new
+ * urgency rules wait here for the user's OK, so an email that tricks the model
+ * can at most propose a change, never make one.
+ */
 interface Outcome extends AgentResult {
   instruction: string;
-  /** Changes waiting for the user's OK (too many to apply silently). */
+  /** Priority changes waiting for the user's OK. */
   pending: Record<string, Priority> | null;
+  /** A standing urgency rule waiting for the user's OK. */
+  pendingRule: string | null;
   /** What applied changes replaced, for Undo; null when nothing is applied (or it was undone). */
   undo: Record<string, Priority> | null;
   applied: number;
@@ -104,20 +108,19 @@ export function AiBar({ className = "" }: { className?: string }) {
         },
       });
 
-      const count = Object.keys(result.marks).length;
-      const confirm = count > CONFIRM_OVER;
-      const undo = count && !confirm ? apply(result.marks) : null;
+      // Showing results is harmless; changes to priorities and rules wait for the user.
       if (result.show) actions.setAiFilter({ ids: result.show, query: instruction });
-      if (result.rule) actions.addRule(result.rule);
       // Older emails the search added get their AI analysis now that the search is done.
       if (result.foundOlder) analyseFound();
 
       setOutcome({
         ...result,
         instruction,
-        pending: confirm ? result.marks : null,
-        undo,
-        applied: undo ? count : 0,
+        pending: Object.keys(result.marks).length ? result.marks : null,
+        pendingRule: result.rule && !rules.includes(result.rule) ? result.rule : null,
+        rule: null, // set once the user accepts it
+        undo: null,
+        applied: 0,
       });
       setText("");
     } catch (err) {
@@ -297,9 +300,16 @@ function OutcomePanel({
   onChange: (o: Outcome) => void;
   apply: (changes: Record<string, Priority>) => Record<string, Priority>;
 }) {
-  const pendingCount = o.pending ? Object.keys(o.pending).length : 0;
+  const pendingIds = o.pending ? Object.keys(o.pending) : [];
+  const pendingCount = pendingIds.length;
   const pendingPriority = o.pending ? Object.values(o.pending)[0] : null;
   const samePriority = o.pending ? Object.values(o.pending).every((p) => p === pendingPriority) : false;
+  // Name a few of the affected emails so the user knows what they're approving.
+  const byId = new Map(getMessages().map((m) => [m.id, m]));
+  const examples = pendingIds
+    .map((id) => byId.get(id)?.subject)
+    .filter((s): s is string => !!s)
+    .slice(0, 3);
 
   return (
     <div className="pr-6">
@@ -348,12 +358,43 @@ function OutcomePanel({
         </details>
       )}
 
+      {o.pendingRule && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-canvas/50 px-3 py-2 text-[12.5px]">
+          <span className="min-w-0 flex-1 text-body">
+            Remember this for future emails? <span className="text-ink">“{o.pendingRule}”</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => onChange({ ...o, pendingRule: null })}
+            className="font-medium text-muted hover:text-ink"
+          >
+            Skip
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              actions.addRule(o.pendingRule!);
+              onChange({ ...o, rule: o.pendingRule, pendingRule: null });
+            }}
+            className="rounded-md bg-accent px-2.5 py-1 font-semibold text-white hover:bg-accent-hover"
+          >
+            Remember
+          </button>
+        </div>
+      )}
+
       {o.pending && (
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-canvas/50 px-3 py-2 text-[12.5px]">
-          <span className="flex-1 text-body">
+          <span className="min-w-0 flex-1 text-body">
             {samePriority
               ? `Mark ${plural(pendingCount, "email")} ${pendingPriority} priority?`
               : `Change the priority of ${plural(pendingCount, "email")}?`}
+            {examples.length > 0 && (
+              <span className="mt-0.5 block truncate text-[11.5px] text-muted">
+                {examples.map((s) => `“${s}”`).join(", ")}
+                {pendingCount > examples.length ? ` and ${pendingCount - examples.length} more` : ""}
+              </span>
+            )}
           </span>
           <button
             type="button"
