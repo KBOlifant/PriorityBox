@@ -1,3 +1,4 @@
+import { memoryPrompt } from "@/lib/memory";
 import type { Message } from "@/lib/types";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -61,10 +62,11 @@ export async function chatWithUsage(
   const apiKey = process.env.NEXT_PUBLIC_GROQ_API_KEY;
   if (!apiKey) throw new GroqError("AI isn’t configured yet.");
 
+  // The user's custom memory (Settings) goes with every request.
   const body = JSON.stringify({
     model: MODEL,
     messages: [
-      { role: "system", content: system },
+      { role: "system", content: system + memoryPrompt() },
       { role: "user", content: user },
     ],
     temperature: 0.4,

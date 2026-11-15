@@ -6,4 +6,5 @@ export * from "./aiResponses";
 export * from "./savedEmails";
 export * from "./manualEntries";
 export * from "./folders";
+export * from "./memory";
 export type { Stored, Timestamps } from "./crud";

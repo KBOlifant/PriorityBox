@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { syncMail } from "@/lib/mail";
 import { loadFolders } from "@/lib/folders";
 import { createEditSink, loadManual } from "@/lib/manual";
+import { loadMemory } from "@/lib/memory";
 import { idbSweep } from "@/services/idb";
 import { keepBody, loadSaved, missingAutoSaves, missingBodies, saveMessage } from "@/lib/saved";
 import { actions, setEditSink, useStore } from "@/lib/store";
@@ -153,7 +154,7 @@ export function SavedSync() {
   return null;
 }
 
-/** Loads the "Grouped Emails" folders on sign-in, and clears expired device cache. Renders nothing. */
+/** Loads the "Grouped Emails" folders and custom memory on sign-in, and clears expired device cache. Renders nothing. */
 export function FolderSync() {
   const { user } = useAuth();
   const uid = user?.uid;
@@ -161,6 +162,7 @@ export function FolderSync() {
   useEffect(() => {
     if (!uid) return;
     void loadFolders(uid);
+    void loadMemory(uid);
     void idbSweep();
   }, [uid]);
 

@@ -8,6 +8,7 @@ import {
   ManualSync,
   SavedSync,
 } from "@/components/mail-sync";
+import { MemoryModal } from "@/components/memory-modal";
 import { SearchScopeModal } from "@/components/search-scope-modal";
 import { SelectionBar } from "@/components/selection-bar";
 import { ManualEditor } from "@/components/manual-editor";
@@ -45,6 +46,7 @@ export default function WorkspaceLayout({
         <ManualEditor />
         <SearchScopeModal />
         <SelectionBar />
+        <MemoryModal />
       </div>
     </AuthGate>
   );

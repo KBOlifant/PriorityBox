@@ -78,9 +78,16 @@ export interface State {
   folderItems: Record<string, FolderItemRef[]>;
   /** Emails ticked with their checkbox, for grouping or re-marking several at once. */
   selected: string[];
+  /** Notes the user wrote for the AI to remember; sent with every AI request. */
+  memories: string[];
+  /** The "Custom memory" dialog is open. */
+  memoryOpen: boolean;
 }
 
 const MAX_RULES = 5;
+/** Custom memory limits: every note is sent with every AI request, so they stay small. */
+export const MAX_MEMORIES = 10;
+export const MAX_MEMORY_CHARS = 200;
 export const DEFAULT_CACHE_HOURS = 24;
 const STORAGE_KEY = "priority:v1";
 const listeners = new Set<() => void>();
@@ -115,6 +122,8 @@ let state: State = {
   foldersLoaded: false,
   folderItems: {},
   selected: [],
+  memories: [],
+  memoryOpen: false,
 };
 const serverState = state;
 
@@ -147,6 +156,7 @@ function hydrate() {
     rules?: string[];
     cacheHours?: number;
     mode?: Mode;
+    memories?: string[];
   } = {};
   try {
     saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
@@ -166,6 +176,9 @@ function hydrate() {
         ? saved.cacheHours
         : DEFAULT_CACHE_HOURS,
     mode: saved.mode === "manual" ? "manual" : "mail",
+    memories: Array.isArray(saved.memories)
+      ? saved.memories.filter((m) => typeof m === "string").slice(0, MAX_MEMORIES)
+      : [],
   };
   // The saved mode decides which messages are shown.
   state = { ...state, messages: applyOverrides(overrides), usingSample: isSample() };
@@ -181,6 +194,7 @@ function persist() {
         rules: state.rules,
         cacheHours: state.cacheHours,
         mode: state.mode,
+        memories: state.memories,
       }),
     );
   } catch {
@@ -323,7 +337,17 @@ export const actions = {
   clearSelected: () => {
     if (state.selected.length) update({ selected: [] });
   },
+  /** Replaces the custom memory (already trimmed and limited by lib/memory). */
+  setMemories: (memories: string[]) => update({ memories }, true),
+  openMemory: () => update({ memoryOpen: true }),
+  closeMemory: () => update({ memoryOpen: false }),
 };
+
+/** The user's custom memory, for non-React code (the AI client adds it to every request). */
+export function getMemories(): string[] {
+  hydrate();
+  return state.memories;
+}
 
 /** The messages currently shown (with the user's edits), for non-React code. */
 export function getMessages(): Message[] {

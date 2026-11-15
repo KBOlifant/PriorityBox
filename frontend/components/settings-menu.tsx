@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bell, Check, ChevronDown, Settings } from "lucide-react";
+import { Bell, Brain, Check, ChevronDown, ChevronRight, Settings } from "lucide-react";
 import { Switch, ThemeToggle } from "./theme-toggle";
 import { useAuth } from "@/lib/auth";
 import { actions, useStore } from "@/lib/store";
@@ -18,7 +18,7 @@ const OPTIONS = [
 
 /** Gear menu: how long emails stay on this device so they survive a refresh. */
 export function SettingsMenu() {
-  const { cacheHours } = useStore();
+  const { cacheHours, memories } = useStore();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [cleared, setCleared] = useState(false);
@@ -99,6 +99,23 @@ export function SettingsMenu() {
                 </span>
                 <Switch on={notify} label="Notifications" onClick={toggleNotify} />
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  actions.openMemory();
+                }}
+                className="flex w-full items-center justify-between gap-3 rounded-lg py-0.5 text-left transition-colors hover:text-accent-text"
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <Brain className="size-4 text-muted" strokeWidth={1.7} />
+                  Custom memory
+                </span>
+                <span className="flex items-center gap-1 text-[12px] text-muted">
+                  {memories.length ? `${memories.length} saved` : "Add"}
+                  <ChevronRight className="size-3.5" />
+                </span>
+              </button>
             </div>
             <label htmlFor="cache-hours" className="mt-4 block font-medium">
               Keep emails on this device for
