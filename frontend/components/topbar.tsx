@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Plus, RefreshCw, Search } from "lucide-react";
-import { AiBar } from "./ai-bar";
 import { ModeSwitch } from "./mode-switch";
 import { SettingsMenu } from "./settings-menu";
 import { useAuth } from "@/lib/auth";
@@ -29,7 +28,6 @@ export function Topbar() {
           className="h-10 w-full rounded-xl border border-line bg-surface pl-11 pr-4 text-[13px] text-ink outline-none transition-colors placeholder:text-muted focus:border-accent-line focus:ring-2 focus:ring-accent/20 [&::-webkit-search-cancel-button]:hidden"
         />
       </label>
-      <AiBar />
       </div>
 
       <div className="flex items-center gap-3">

@@ -1,6 +1,7 @@
 "use client";
 
 import { Flag } from "lucide-react";
+import { AiBar } from "@/components/ai-bar";
 import { MessageGrid } from "@/components/message-grid";
 import { PageHeader, SectionHeading } from "@/components/page-header";
 import { useProfile } from "@/lib/auth";
@@ -20,6 +21,10 @@ export default function PriorityInboxPage() {
         title={`Good morning, ${firstName}.`}
         subtitle="Here’s what deserves your attention today."
       />
+
+      <div className="mt-8 flex justify-center">
+        <AiBar className="max-w-[640px]" />
+      </div>
 
       {visible.length === 0 ? (
         <div className="mt-10">

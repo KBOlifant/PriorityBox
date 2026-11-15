@@ -27,7 +27,7 @@ interface Outcome extends AgentResult {
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /** Free-text instructions to the AI: find emails, re-mark priority, group them into folders. */
-export function AiBar() {
+export function AiBar({ className = "" }: { className?: string }) {
   const { messages, rules, mode, folders } = useStore();
   const { user } = useAuth();
   const online = useOnline();
@@ -130,7 +130,7 @@ export function AiBar() {
   }
 
   return (
-    <div ref={root} className="relative min-w-0 flex-1 max-w-[460px]">
+    <div ref={root} className={`relative w-full min-w-0 ${className}`}>
       <form onSubmit={submit} className="relative">
         <label className="sr-only" htmlFor="ai-bar">
           Ask AI to find, group or re-mark emails
