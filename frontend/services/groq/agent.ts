@@ -40,7 +40,10 @@ export interface ScopeRequest {
 }
 
 export interface AgentHooks {
+  /** What the agent is doing right now ("Searching for “invoice”…"). */
   onProgress(text: string): void;
+  /** A finished step and what it found, in plain words ("Searched for “invoice”: 9 matches"). */
+  onStep?(summary: string): void;
   /** How far back to search: an epoch-ms cutoff, undefined for the whole inbox, or null to cancel. */
   askScope(request: ScopeRequest): Promise<number | undefined | null>;
 }
@@ -103,7 +106,8 @@ interface State {
 }
 
 const oneLine = (s: string, max: number) => s.replace(/\s+/g, " ").trim().slice(0, max);
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+const plural = (n: number, word: string) =>
+  `${n} ${word}${n === 1 ? "" : /(ch|sh|s|x)$/.test(word) ? "es" : "s"}`;
 
 export async function runAgent(
   instruction: string,
@@ -367,6 +371,41 @@ export async function runAgent(
     }
   }
 
+  /** A finished step in plain words for the progress list (the model gets the full result). */
+  function summarize(a: Action, result: string): string {
+    const count = (re: RegExp) => Number(result.match(re)?.[1] ?? 0);
+    switch (a.tool) {
+      case "senders":
+        return "Checked who your emails are from";
+      case "pick_senders":
+        return `Collected emails from ${a.names.join(", ")} (${count(/: (\d+) email/)})`;
+      case "keyword": {
+        const lines = [...result.matchAll(/^"(.+)" → (.*): (\d+) hits?$/gm)].map(([, term, forms, n]) => {
+          const first = forms.split(", ")[0];
+          const as = first && first !== "no such word" && first !== normalize(term) ? ` (as “${first}”)` : "";
+          return `“${term}”${as}: ${plural(Number(n), "match")}`;
+        });
+        return `Searched loaded mail for ${lines.join(", ")}`;
+      }
+      case "search_inbox":
+        return result.replace(/^search_inbox:\s*/, "Inbox search: ").replace(/; pool \d+$/, "");
+      case "list":
+        return "Reviewed the matches";
+      case "read":
+        return `Read ${plural(a.refs.length, "email")}`;
+      case "drop":
+        return `Ruled out ${plural(a.refs.length, "email")}`;
+      case "mark":
+        return `Marked ${plural(count(/: (\d+) change/), "email")} ${a.priority}`;
+      case "show":
+        return `Chose ${plural(count(/show: (\d+)/), "email")} to show`;
+      case "remember":
+        return "Remembered your preference";
+      case "finish":
+        return "";
+    }
+  }
+
   /* ---------- the loop ---------- */
 
   function prompt(turn: number, last: boolean, results: string): string {
@@ -416,7 +455,9 @@ export async function runAgent(
       }
       // On the last turn only actions that settle the result are carried out.
       if (last && !["mark", "show", "drop", "remember"].includes(a.tool)) continue;
-      out.push(await run(a));
+      const result = await run(a);
+      out.push(result);
+      hooks.onStep?.(summarize(a, result));
     }
     if (last) break;
     results = out.join("\n").slice(0, RESULT_CHARS);

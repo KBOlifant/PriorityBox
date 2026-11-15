@@ -22,8 +22,8 @@ export default function PriorityInboxPage() {
         subtitle="Here’s what deserves your attention today."
       />
 
-      <div className="mt-8 flex justify-center">
-        <AiBar className="max-w-[640px]" />
+      <div className="mt-8">
+        <AiBar />
       </div>
 
       {visible.length === 0 ? (
