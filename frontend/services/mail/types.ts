@@ -43,6 +43,16 @@ export interface Classification {
 /** Raised with a message that is safe to show to the user. */
 export class MailError extends Error {}
 
+/** A search of the INBOX on the mail server. Every part is optional; parts are combined with AND. */
+export interface MailQuery {
+  /** Any of these words or phrases (OR), in the subject or body. */
+  terms?: string[];
+  /** From any of these senders (OR): names, addresses or domains. */
+  from?: string[];
+  /** Only mail received on or after this time (epoch ms). */
+  after?: number;
+}
+
 export interface MailProvider {
   id: ProviderId;
   label: string;
@@ -52,6 +62,8 @@ export interface MailProvider {
   connect(): Promise<ConnectedAccount>;
   /** Tries to get a valid token without UI. Returns false if the user must reconnect. */
   restore(account: string): Promise<boolean>;
+  /** True if mail can be read right now without any sign-in UI (never opens a pop-up or browser). */
+  hasSession(account: string): Promise<boolean>;
   /** One message by its provider id (without the "gmail:" / "outlook:" prefix). */
   fetchMessage(account: string, nativeId: string): Promise<RawMail>;
   /** One batch of the inbox, newest first. `next` is the cursor for the following batch. */
@@ -60,4 +72,8 @@ export interface MailProvider {
     options: { limit: number; cursor?: string },
   ): Promise<{ mail: RawMail[]; next?: string }>;
   disconnect(account: string): Promise<void>;
+  /** Full ids ("gmail:…") of inbox messages matching `query`, newest first, at most `limit`. */
+  searchIds(account: string, query: MailQuery, limit: number): Promise<string[]>;
+  /** Roughly how many inbox messages match, without fetching them. */
+  countMatches(account: string, query: MailQuery): Promise<number>;
 }

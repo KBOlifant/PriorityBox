@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpen, Calendar, ChevronDown, ExternalLink, Pencil, Reply, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, Calendar, ChevronDown, ExternalLink, Loader2, Pencil, Reply, Sparkles, Trash2 } from "lucide-react";
 import { AiSummaryPanel, useAiSummary } from "./ai-summary";
 import { FollowUp } from "./details-panel";
 import { EmailModal } from "./email-modal";
@@ -30,7 +30,6 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
   const { user } = useAuth();
   const { messages } = useStore();
   const [reading, setReading] = useState<Message | null>(null);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [followUp, setFollowUp] = useState(false);
   const [open, setOpen] = useState(false);
@@ -40,9 +39,21 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
     user ? loadSavedBody(user.uid, item.id) : null,
   );
 
+  // Fetched from the mailbox in this view (kept too, but also covers an email with no body).
+  const [fetched, setFetched] = useState<Message | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "needs-connect">("idle");
+  const [truncated, setTruncated] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
   // The AI works on the user's notes, plus the real email when it is known.
   const loaded = messages.find((m) => m.id === item.messageId);
-  const message = savedToMessage(item, loaded?.body ?? kept?.body);
+  // The email itself, from wherever it is already available: this session, this device, or a fetch.
+  const email: Message | null = loaded?.body
+    ? loaded
+    : kept
+      ? { ...savedToMessage(item, kept.body), day: kept.day, time: kept.time }
+      : fetched;
+  const message = savedToMessage(item, email?.body);
   const ai = useAiSummary(message);
 
   const provider = providers[item.provider];
@@ -53,33 +64,67 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
     webLink: item.webLink,
   });
   const edited = item.activity && item.activity !== item.subject;
+  const appName = provider.label.replace("Google ", "").replace("Microsoft ", "");
+  const busy = status === "loading";
 
-  async function read() {
-    // Already loaded in this session, or kept on this device: no need to go back to the mailbox.
-    if (loaded) return setReading(loaded);
-    if (kept) return setReading({ ...savedToMessage(item, kept.body), day: kept.day, time: kept.time });
-
-    setBusy(true);
+  /**
+   * Gets the email from the mailbox by its id. `interactive` is only true after a
+   * click: it may show a sign-in. Otherwise it only fetches if the account already
+   * has a valid session, so expanding a card never opens a pop-up or browser.
+   */
+  async function fetchEmail(interactive: boolean): Promise<Message | null> {
+    if (email) return email;
+    setStatus("loading");
     setError("");
     try {
-      if (!(await provider.restore(item.account))) {
+      const ready = interactive
+        ? await provider.restore(item.account)
+        : await provider.hasSession(item.account);
+      if (!ready) {
+        if (!interactive) {
+          setStatus("needs-connect");
+          return null;
+        }
         throw new MailError(
-          `This email isn’t kept on this device and ${provider.label} isn’t connected. Connect it to read the email, or open it in ${provider.label.replace("Google ", "").replace("Microsoft ", "")}.`,
+          `This email isn’t kept on this device and ${provider.label} isn’t connected. Connect it to read the email, or open it in ${appName}.`,
         );
       }
       const nativeId = item.messageId.slice(item.messageId.indexOf(":") + 1);
-      const fetched = toMessage(await provider.fetchMessage(item.account, nativeId));
-      if (user && fetched.body) {
-        const entry = { body: fetched.body, day: fetched.day, time: fetched.time };
-        storeSavedBody(user.uid, item.id, entry);
+      const got = toMessage(await provider.fetchMessage(item.account, nativeId));
+      if (got.body) {
+        const entry = { body: got.body, day: got.day, time: got.time };
+        if (user) storeSavedBody(user.uid, item.id, entry);
         setKept(entry);
       }
-      setReading(fetched);
+      setFetched(got);
+      setStatus("idle");
+      return got;
     } catch (err) {
+      setStatus("idle");
       setError(err instanceof Error ? err.message : "Couldn’t load this email.");
-    } finally {
-      setBusy(false);
+      return null;
     }
+  }
+
+  async function read() {
+    const got = await fetchEmail(true);
+    if (got) setReading(got);
+  }
+
+  // Is there more email than the 5-line view shows? Decides whether to offer "Read full email".
+  useEffect(() => {
+    if (!open) return;
+    const el = textRef.current;
+    if (el) setTruncated(el.scrollHeight > el.clientHeight + 1);
+  }, [open, email?.body]);
+
+  function toggleOpen() {
+    if (!open) {
+      markRead(item.id);
+      // Expanding shows the email itself, fetched by reference if it isn't here yet.
+      if (!email && status === "idle") void fetchEmail(false);
+    }
+    setOpen(!open);
   }
 
   return (
@@ -89,7 +134,7 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1], delay: Math.min(index, 6) * 0.04 }}
-      className={`group relative flex flex-col rounded-xl p-3 shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_LIP_PAD} ${isRead ? "bg-read" : "bg-surface"}`}
+      className={`group relative flex min-w-0 flex-col rounded-xl ${open ? "p-3" : "p-2"} shadow-sm shadow-black/10 transition-shadow hover:shadow-md hover:shadow-black/15 ${PRIORITY_LIP_PAD} ${isRead ? "bg-read" : "bg-surface"}`}
     >
       <PriorityLip priority={item.priority} />
       <div
@@ -132,18 +177,15 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
         role="button"
         tabIndex={0}
         aria-expanded={open}
-        onClick={() => {
-          if (!open) markRead(item.id);
-          setOpen(!open);
-        }}
+        aria-label={`${open ? "Hide" : "Show"} details for ${item.activity}`}
+        onClick={toggleOpen}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            if (!open) markRead(item.id);
-            setOpen(!open);
+            toggleOpen();
           }
         }}
-        className="flex cursor-pointer gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+        className={`flex cursor-pointer gap-3 rounded-lg outline-none ${open ? "" : "items-center"} focus-visible:ring-2 focus-visible:ring-accent/40`}
       >
         <span
           className="grid size-8 shrink-0 place-items-center rounded-lg text-[12px] font-semibold text-white/95"
@@ -152,7 +194,27 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
         >
           {initials(item.sender, item.sender)}
         </span>
-        <div className="min-w-0 flex-1">
+        {!open && (
+          // Collapsed: one Gmail-style line, like the inbox cards.
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <span
+              className={`w-36 shrink-0 truncate text-[14px] text-ink ${isRead ? "font-normal" : "font-semibold"}`}
+            >
+              {item.sender}
+            </span>
+            <p className="min-w-0 flex-1 truncate text-[13px] text-body">
+              <span className={`text-ink ${isRead ? "font-normal" : "font-semibold"}`}>{item.activity}</span>
+              {(item.progressNote || edited) && (
+                <span className="text-muted"> – {item.progressNote || item.subject}</span>
+              )}
+            </p>
+            <span className="shrink-0 text-[12px] text-muted">Saved {timeAgo(item.savedAt)}</span>
+            <span className="shrink-0 transition-opacity group-hover:opacity-0">
+              <PriorityBadge priority={item.priority} />
+            </span>
+          </div>
+        )}
+        <div className={`min-w-0 flex-1 ${open ? "" : "hidden"}`}>
           <div className="flex items-start justify-between gap-3">
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-2 text-[12.5px] text-muted">
               <span className={`text-[14.5px] text-ink ${isRead ? "font-normal" : "font-semibold"}`}>{item.sender}</span>
@@ -169,6 +231,31 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
           {open && edited && (
             <p className="mt-1 truncate text-[12px] text-muted" title={item.subject}>
               Email: {item.subject}
+            </p>
+          )}
+          {open && email?.body && (
+            <p ref={textRef} className="mt-1.5 line-clamp-5 whitespace-pre-line text-[13px] leading-5 text-body">
+              {email.body}
+            </p>
+          )}
+          {open && !email?.body && busy && (
+            <p className="mt-1.5 flex items-center gap-2 text-[12.5px] text-muted">
+              <Loader2 className="size-3.5 animate-spin" /> Loading the email from {appName}…
+            </p>
+          )}
+          {open && !email?.body && status === "needs-connect" && (
+            <p className="mt-1.5 text-[12.5px] text-muted">
+              The email isn’t on this device.{" "}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation(); // don't collapse the card
+                  void fetchEmail(true);
+                }}
+                className="font-medium text-accent-text hover:text-ink"
+              >
+                Load it from {appName}
+              </button>
             </p>
           )}
           {open && item.progressNote && (
@@ -219,6 +306,18 @@ export function SavedCard({ item, index }: { item: SavedRef; index: number }) {
           </p>}
         </div>
       </div>
+
+      {open && email && truncated && (
+        <button
+          type="button"
+          onClick={() => setReading(email)}
+          aria-haspopup="dialog"
+          className="ml-11 mt-2 flex items-center gap-1.5 self-start rounded-lg text-[12.5px] font-medium text-accent-text outline-none transition-colors hover:text-ink focus-visible:ring-2 focus-visible:ring-accent/40"
+        >
+          <BookOpen className="size-3.5" />
+          Read full email
+        </button>
+      )}
 
       {open && (
         <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">

@@ -1,4 +1,5 @@
 import { normalizeGmail, type GmailMessage } from "./parse";
+import { gmailQuery } from "./query";
 import {
   MailError,
   type ConnectedAccount,
@@ -102,12 +103,6 @@ declare global {
         prompt?: string;
         loginHint?: string;
       }): Promise<{ access_token: string; expires_in: number }>;
-      /** Redis, reached through Electron's main process (see electron/redis-cache.js). */
-      cache: {
-        getMany(keys: string[]): Promise<(string | null)[]>;
-        set(key: string, json: string, ttlSeconds?: number): Promise<void>;
-        del(keys: string[]): Promise<void>;
-      };
     };
   }
 }
@@ -240,6 +235,8 @@ export const gmail: MailProvider = {
     }
   },
 
+  hasSession: async () => Boolean(cachedToken()),
+
   async fetchMessage(account, nativeId) {
     const token = cachedToken();
     if (!token) throw new MailError("Gmail session expired. Reconnect to continue.");
@@ -267,6 +264,36 @@ export const gmail: MailProvider = {
       mail.push(...messages.map((m) => normalizeGmail(m, account)));
     }
     return { mail, next: list.nextPageToken };
+  },
+
+  async searchIds(_account, query, limit) {
+    const token = cachedToken();
+    if (!token) throw new MailError("Gmail session expired. Reconnect to continue.");
+    const q = encodeURIComponent(gmailQuery(query));
+    const ids: string[] = [];
+    let pageToken = "";
+    // Listing ids is cheap (no message content); up to 500 per request.
+    while (ids.length < limit) {
+      const page = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : "";
+      const list = await api<{ messages?: { id: string }[]; nextPageToken?: string }>(
+        `/messages?maxResults=${Math.min(500, limit - ids.length)}&labelIds=INBOX&q=${q}${page}`,
+        token,
+      );
+      ids.push(...(list.messages ?? []).map((m) => `gmail:${m.id}`));
+      if (!list.nextPageToken) break;
+      pageToken = list.nextPageToken;
+    }
+    return ids.slice(0, limit);
+  },
+
+  async countMatches(_account, query) {
+    const token = cachedToken();
+    if (!token) throw new MailError("Gmail session expired. Reconnect to continue.");
+    const list = await api<{ resultSizeEstimate?: number }>(
+      `/messages?maxResults=1&labelIds=INBOX&q=${encodeURIComponent(gmailQuery(query))}`,
+      token,
+    );
+    return list.resultSizeEstimate ?? 0;
   },
 
   async disconnect() {

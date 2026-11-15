@@ -1,5 +1,6 @@
 import type { AccountInfo, PublicClientApplication } from "@azure/msal-browser";
 import { normalizeGraph, type GraphMessage } from "./parse";
+import { outlookSearch } from "./query";
 import {
   MailError,
   type ConnectedAccount,
@@ -99,6 +100,16 @@ export const outlook: MailProvider = {
     }
   },
 
+  // MSAL renews silently, so this is the same check as restore().
+  async hasSession(account) {
+    try {
+      await accessToken(account);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   async fetchMessage(account, nativeId) {
     const token = await accessToken(account);
     const select = encodeURIComponent("id,subject,from,receivedDateTime,bodyPreview,body,webLink");
@@ -160,6 +171,35 @@ export const outlook: MailProvider = {
       // Graph signals "more" with a nextLink; we page with $skip instead of following it.
       next: data["@odata.nextLink"] ? String(skip + limit) : undefined,
     };
+  },
+
+  async searchIds(account, query, limit) {
+    const token = await accessToken(account);
+    const ids: string[] = [];
+    // $search can't be combined with $orderby; results come back by relevance and are sorted later.
+    let url: string | undefined =
+      `${GRAPH}/me/mailFolders/inbox/messages?$search=${encodeURIComponent(`"${outlookSearch(query)}"`)}` +
+      `&$select=id&$top=${Math.min(250, limit)}`;
+    while (url && ids.length < limit) {
+      let res: Response;
+      try {
+        res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+      } catch {
+        throw new MailError("Can’t reach Outlook. Check your connection.");
+      }
+      if (res.status === 401) throw new MailError("Outlook session expired. Reconnect to continue.");
+      if (res.status === 429) throw new MailError("Outlook is rate limiting requests. Try again shortly.");
+      if (!res.ok) throw new MailError("Outlook search failed. Try again.");
+      const data = (await res.json()) as { value?: { id: string }[]; "@odata.nextLink"?: string };
+      ids.push(...(data.value ?? []).map((m) => `outlook:${m.id}`));
+      url = data["@odata.nextLink"];
+    }
+    return ids.slice(0, limit);
+  },
+
+  // Graph has no cheap count for $search, so list ids (no content) up to a cap.
+  async countMatches(account, query) {
+    return (await this.searchIds(account, query, 500)).length;
   },
 
   async disconnect(account) {
