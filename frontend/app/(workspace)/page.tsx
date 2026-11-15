@@ -30,8 +30,9 @@ export default function PriorityInboxPage() {
             alt=""
             fill
             priority
-            sizes="(min-width: 1200px) 1160px, 100vw"
-            className="object-cover object-[50%_40%]"
+            // Served as-is: re-compressing smooth gradients makes them blocky.
+            unoptimized
+            className="object-cover object-center"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-canvas/0 via-canvas/55 via-55% to-canvas" />
         </div>
