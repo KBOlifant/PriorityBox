@@ -1,6 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { Flag } from "lucide-react";
+import headerImage from "@/assets/HomePageHeader_PriorityBox.webp";
+import { useGreeting } from "@/lib/greeting";
 import { AiBar } from "@/components/ai-bar";
 import { AiResults } from "@/components/ai-results";
 import { MessageGrid } from "@/components/message-grid";
@@ -10,6 +13,7 @@ import { needsAttention, useAiResults, usePage } from "@/lib/selectors";
 
 export default function PriorityInboxPage() {
   const { firstName } = useProfile();
+  const greeting = useGreeting();
   const { all, visible, filtering } = usePage("priority");
   const results = useAiResults();
   const attention = visible.filter(needsAttention);
@@ -18,11 +22,27 @@ export default function PriorityInboxPage() {
 
   return (
     <>
-      <PageHeader
-        highlight={`${attentionTotal} need attention`}
-        title={`Good morning, ${firstName}.`}
-        subtitle="Here’s what deserves your attention today."
-      />
+      {/* Header image, faded into the page at the bottom; the greeting sits on the faded part. */}
+      <div className="relative -mt-4">
+        <div className="relative h-72 overflow-hidden rounded-2xl" aria-hidden>
+          <Image
+            src={headerImage}
+            alt=""
+            fill
+            priority
+            sizes="(min-width: 1200px) 1160px, 100vw"
+            className="object-cover object-[50%_40%]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-canvas/0 via-canvas/55 via-55% to-canvas" />
+        </div>
+        <div className="relative -mt-36 px-6">
+          <PageHeader
+            highlight={`${attentionTotal} need attention`}
+            title={`${greeting}, ${firstName}.`}
+            subtitle="Here’s what deserves your attention today."
+          />
+        </div>
+      </div>
 
       <div className="mt-8">
         <AiBar />
