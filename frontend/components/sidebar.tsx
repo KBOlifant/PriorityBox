@@ -8,6 +8,7 @@ import {
   Bookmark,
   Calendar,
   Clock,
+  FolderOpen,
   Inbox,
   LogOut,
   Mail,
@@ -31,6 +32,7 @@ const NAV: {
   { key: "events", href: "/events", label: "Events", icon: Calendar },
   { key: "archive", href: "/archive", label: "Archive", icon: Archive },
   { key: "saved", href: "/saved", label: "Saved", icon: Bookmark },
+  { key: "grouped", href: "/grouped", label: "Grouped Emails", icon: FolderOpen },
 ];
 
 const LABELS = [

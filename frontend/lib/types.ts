@@ -6,7 +6,8 @@ export type PageKey =
   | "waiting"
   | "events"
   | "archive"
-  | "saved";
+  | "saved"
+  | "grouped";
 
 export interface MailEvent {
   label: string;

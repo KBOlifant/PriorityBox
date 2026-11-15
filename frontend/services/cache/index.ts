@@ -28,7 +28,9 @@ export const cache: Cache = {
   del: (...keys) => idbDel(keys),
 };
 
-/** Removes everything cached for one user (on sign-out). */
+/** Removes everything cached for one user (on sign-out), including emails kept by mailStore. */
 export async function clearUserCache(uid: string) {
-  await Promise.all([idbClearPrefix(`${NS}${uid}:`), idbClearPrefix(`ai:${uid}:`)]);
+  await Promise.all(
+    [`${NS}${uid}:`, `ai:${uid}:`, `mail:${uid}:`, `msearch:${uid}:`].map((p) => idbClearPrefix(p)),
+  );
 }

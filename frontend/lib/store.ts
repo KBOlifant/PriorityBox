@@ -4,6 +4,7 @@ import type { Filter, Message, Priority } from "./types";
 import { manualToMessage } from "./manual-map";
 import type { ManualEntry } from "@/services/firestore/manualEntries";
 import type { SavedRef } from "@/services/firestore/savedEmails";
+import type { FolderItemRef, FolderRef } from "@/services/firestore/folders";
 import type { AccountStatus } from "@/services/mail/types";
 
 export interface SyncState {
@@ -24,6 +25,16 @@ export interface SyncState {
 export interface AiFilter {
   ids: string[];
   query: string;
+}
+
+/** The AI wants to search further back than a few pages: the user picks how far (see SearchScopeModal). */
+export interface ScopePrompt {
+  /** Matches in the whole inbox (approximate). */
+  total: number;
+  /** Matches received on or after `after` (epoch ms). */
+  count(after: number): Promise<number>;
+  /** An epoch-ms cutoff, undefined for the whole inbox, or null to cancel. */
+  resolve(after: number | undefined | null): void;
 }
 
 type Overrides = Record<
@@ -59,6 +70,12 @@ export interface State {
   manual: ManualEntry[];
   /** The manual entry form: null = closed, {} = new entry, {id} = editing that entry. */
   manualEditor: { id?: string; saved?: boolean } | null;
+  scopePrompt: ScopePrompt | null;
+  /** "Grouped Emails" folders. */
+  folders: FolderRef[];
+  foldersLoaded: boolean;
+  /** Items of the folders that have been opened, by folder id. */
+  folderItems: Record<string, FolderItemRef[]>;
 }
 
 const MAX_RULES = 5;
@@ -91,6 +108,10 @@ let state: State = {
   mode: "mail",
   manual: [],
   manualEditor: null,
+  scopePrompt: null,
+  folders: [],
+  foldersLoaded: false,
+  folderItems: {},
 };
 const serverState = state;
 
@@ -260,7 +281,39 @@ export const actions = {
     update(state.onboarded ? { onboarding: null } : { onboarding: 1 });
   },
   finishOnboarding: () => update({ onboarding: null, onboarded: true }, true),
+  /** Shows the "how far back?" dialog and resolves with the user's choice. */
+  askScope(total: number, count: (after: number) => Promise<number>): Promise<number | undefined | null> {
+    state.scopePrompt?.resolve(null); // only one at a time
+    return new Promise((resolve) => {
+      update({
+        scopePrompt: {
+          total,
+          count,
+          resolve: (after) => {
+            update({ scopePrompt: null });
+            resolve(after);
+          },
+        },
+      });
+    });
+  },
+  setFolders: (folders: FolderRef[], loaded = true) =>
+    update({ folders, foldersLoaded: state.foldersLoaded || loaded }),
+  setFolderItems: (folderId: string, items: FolderItemRef[]) =>
+    update({ folderItems: { ...state.folderItems, [folderId]: items } }),
 };
+
+/** The messages currently shown (with the user's edits), for non-React code. */
+export function getMessages(): Message[] {
+  hydrate();
+  return state.messages;
+}
+
+/** Current folders and opened folder items, for non-React code. */
+export function getFolders(): { folders: FolderRef[]; items: Record<string, FolderItemRef[]> } {
+  hydrate();
+  return { folders: state.folders, items: state.folderItems };
+}
 
 /** Current rules, for non-React code. */
 export function getRules(): string[] {

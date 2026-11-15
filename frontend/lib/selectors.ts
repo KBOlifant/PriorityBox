@@ -21,7 +21,8 @@ export function inPage(m: Message, page: PageKey): boolean {
     case "archive":
       return m.archived;
     case "saved":
-      return false; // saved items are references, not loaded messages
+    case "grouped":
+      return false; // saved and grouped items are references, not loaded messages
   }
 }
 
@@ -76,7 +77,7 @@ export function usePage(screen: PageKey) {
 
 /** Sidebar counts for the page being viewed. */
 export function useCounts() {
-  const { messages, sync, saved } = useStore();
+  const { messages, sync, saved, folders } = useStore();
   return useMemo(() => {
     const view = messages.filter((m) => onViewedPage(m, sync.page));
     return {
@@ -86,6 +87,7 @@ export function useCounts() {
       events: view.filter((m) => inPage(m, "events")).length,
       archive: view.filter((m) => inPage(m, "archive")).length,
       saved: saved.filter((s) => !s.removed).length,
+      grouped: folders.length,
     };
-  }, [messages, sync.page, saved]);
+  }, [messages, sync.page, saved, folders]);
 }
